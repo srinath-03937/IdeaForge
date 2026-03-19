@@ -10,12 +10,12 @@ export function initFirebase() {
     if (!getApps().length) {
       // Try to get config from window or use fallback
       const cfg = window.__firebase_config || {
-        apiKey: "AIzaSyDdiGh5eFxcdbbhyAX88_cDtayTn1jqAOQ",
-        authDomain: "idea-forgr-2.firebaseapp.com",
-        projectId: "idea-forgr-2",
-        storageBucket: "idea-forgr-2.appspot.com",
-        messagingSenderId: "694629924305",
-        appId: "1:694629924305:web:e7c2129fa00d076168f4f0"
+        apiKey: "AIzaSyDRzP-ueSjqjPBjYG1tCRPMbn48_o52DO4",
+        authDomain: "ideaforge-51a7f.firebaseapp.com",
+        projectId: "ideaforge-51a7f",
+        storageBucket: "ideaforge-51a7f.firebasestorage.app",
+        messagingSenderId: "989454342380",
+        appId: "1:989454342380:web:3910f7c6615bbbe5b8edc9"
       }
       
       if (!cfg || !cfg.apiKey) {
@@ -57,7 +57,7 @@ export function getFirebaseFirestore() {
 }
 
 export function appId() {
-  return window.__app_id || 'idea-forgr-2'
+  return window.__app_id || 'ideaforge-51a7f'
 }
 
 // Firebase configuration for deployment

@@ -3,130 +3,48 @@ import { Patent } from '../types'
 
 type GeminiResponse = any
 
-// Generate dynamic mermaid flowchart based on actual search results and workflow
+// Generate simple mermaid flowchart to avoid SVG errors
 function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Patent[]): string {
   try {
-    // Sanitize labels - remove problematic characters that break SVG paths
+    // Very simple sanitization to prevent SVG errors
     const sanitize = (str: string) => {
       return str
-        .replace(/[\"'`\[\]\{\}\|\\\/]/g, '')           // Remove problematic chars
-        .replace(/[^\w\s\-_.]/g, ' ')                // Replace special chars with space
-        .replace(/\s+/g, ' ')                       // Collapse multiple spaces
-        .replace(/^\s+|\s+$/g, '')                  // Trim leading/trailing spaces
-        .replace(/[0-9]+/g, '')                     // Remove numbers that might cause path issues
-        .substring(0, 15)                            // Further limit length to prevent issues
+        .replace(/[^a-zA-Z\s]/g, '') // Only letters and spaces
+        .replace(/\s+/g, ' ')        // Single spaces only
+        .trim()
+        .substring(0, 8)             // Very short labels
     }
     
-    const ideaShort = sanitize(prompt) || 'User Idea'
-    const repoCount = Math.min(Math.max(contextRepos?.length || 0, 0), 5)
-    const patentCount = Math.min(Math.max(patents?.length || 0, 0), 4)
+    const ideaShort = sanitize(prompt) || 'Idea'
+    const repoCount = Math.min(Math.max(contextRepos?.length || 0, 0), 3)
+    const patentCount = Math.min(Math.max(patents?.length || 0, 0), 2)
     
+    // Simple flowchart structure
     let diagram = 'flowchart TD\n'
     
-    // Main idea node with styling
-    diagram += `    A["${ideaShort}"]:::idea\n`
+    // Main idea
+    diagram += `    A["${ideaShort}"]\n`
     
-    // Research phase
-    diagram += `    B["Research Phase"]:::research\n`
-    diagram += `    A --> B\n`
+    // Research
+    diagram += `    A --> B["Research"]\n`
     
-    // GitHub search workflow
-    diagram += `    C["GitHub Search"]:::search\n`
-    diagram += `    B --> C\n`
+    // GitHub search
+    diagram += `    B --> C["GitHub"]\n`
     
-    // Repository nodes (dynamic based on actual search)
-    const repoNodes = []
+    // Add repos if any
     if (repoCount > 0) {
-      for (let i = 0; i < repoCount; i++) {
-        try {
-          const repoName = sanitize(contextRepos[i]?.full_name?.split('/')[1] || `Repo${i + 1}`)
-          const nodeId = String.fromCharCode(68 + i) // D, E, F, G, H
-          repoNodes.push(nodeId)
-          diagram += `    ${nodeId}["${repoName}"]:::repo\n`
-          diagram += `    C --> ${nodeId}\n`
-        } catch (e) {
-          console.warn(`Error processing repo ${i}:`, e)
-        }
-      }
+      diagram += `    C --> D["Repos"]\n`
     }
     
-    // Patent search workflow
-    diagram += `    I["Patent Search"]:::search\n`
-    diagram += `    B --> I\n`
+    // Patent search
+    diagram += `    B --> E["Patents"]\n`
     
-    // Patent nodes (dynamic based on actual search)
-    const patentNodes = []
+    // Add patents if any
     if (patentCount > 0) {
-      for (let i = 0; i < patentCount; i++) {
-        try {
-          const patentName = sanitize(patents[i]?.title || `Patent${i + 1}`)
-          const nodeId = String.fromCharCode(73 + i) // I, J, K, L
-          patentNodes.push(nodeId)
-          diagram += `    ${nodeId}["${patentName}"]:::patent\n`
-          diagram += `    I --> ${nodeId}\n`
-        } catch (e) {
-          console.warn(`Error processing patent ${i}:`, e)
-        }
-      }
-    }
-    
-    // AI Analysis phase
-    diagram += `    M["AI Analysis"]:::analysis\n`
-    if (repoNodes.length > 0) {
-      for (const nodeId of repoNodes) {
-        diagram += `    ${nodeId} --> M\n`
-      }
+      diagram += `    E --> F["Results"]\n`
     } else {
-      diagram += `    C --> M\n`
+      diagram += `    C --> F["Results"]\n`
     }
-    
-    if (patentNodes.length > 0) {
-      for (const nodeId of patentNodes) {
-        diagram += `    ${nodeId} --> M\n`
-      }
-    } else {
-      diagram += `    I --> M\n`
-    }
-    
-    // Results phase
-    diagram += `    R["Results"]:::result\n`
-    diagram += `    M --> R\n`
-    
-    // Score
-    diagram += `    S["Score"]:::score\n`
-    diagram += `    R --> S\n`
-    
-    // Styling definitions
-    diagram += '\n'
-    diagram += '    classDef ideaStyle fill:#10B981,stroke:#059669,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef researchStyle fill:#3B82F6,stroke:#1D4ED8,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef searchStyle fill:#06B6D4,stroke:#0891B2,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef repoStyle fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef patentStyle fill:#EC4899,stroke:#BE185D,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef analysisStyle fill:#8B5CF6,stroke:#6D28D9,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef resultStyle fill:#10B981,stroke:#059669,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef scoreStyle fill:#6B7280,stroke:#4B5563,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef patent fill:#EC4899,stroke:#BE185D,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef analysis fill:#8B5CF6,stroke:#6D28D9,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef assessment fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef planning fill:#84CC16,stroke:#65A30D,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef code fill:#6B7280,stroke:#374151,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef result fill:#EF4444,stroke:#B91C1C,stroke-width:3px,color:#fff,font-weight:bold,font-size:16px\n'
-    
-    // Apply classes
-    diagram += '    class A idea\n'
-    diagram += '    class B research\n'
-    diagram += '    class C,I search\n'
-    diagram += '    class O,P assessment\n'
-    diagram += '    class N analysis\n'
-    diagram += '    class Q planning\n'
-    diagram += '    class R code\n'
-    diagram += '    class S result\n'
-    
-    // Apply repo classes
-    for (let i = 0; i < repoCount; i++) {
-      const nodeId = String.fromCharCode(68 + i)
-      diagram += `    class ${nodeId} repo\n`
     }
     
     // Apply patent classes
