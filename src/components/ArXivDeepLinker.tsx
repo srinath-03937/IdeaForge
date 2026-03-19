@@ -46,8 +46,8 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     
     setLoading(true)
     try {
-      // Use direct ArXiv API to avoid proxy issues
-      const apiUrl = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+      // Use direct ArXiv API with HTTPS
+      const apiUrl = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
       
       const response = await fetch(apiUrl)
       const text = await response.text()
