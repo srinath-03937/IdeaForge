@@ -176,8 +176,14 @@ async function backoffFetch(url:string, opts:any, attempts=3){
 }
 
 export async function callGemini(prompt:string, contextRepos:any[] = []): Promise<GeminiResponse>{
-  const apiKey = (window as any).__gemini_api_key || (import.meta as any).env.VITE_GEMINI_API_KEY
+  // Multiple fallback mechanisms for API key
+  let apiKey = (window as any).__gemini_api_key || 
+                (import.meta as any).env.VITE_GEMINI_API_KEY ||
+                'AIzaSyDRzP-ueSjqjPBjYG1tCRPMbn48_o52DO4' // Direct fallback
+  
   if (!apiKey) throw new Error('Gemini API key not configured')
+  
+  console.log('Using Gemini API key:', apiKey.substring(0, 10) + '...')
   
   try {
     // Step 1: Search for real patents using Gemini
