@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getAnalytics } from 'firebase/analytics'
@@ -6,21 +6,32 @@ import { getAnalytics } from 'firebase/analytics'
 declare global { interface Window { __firebase_config?:any; __app_id?:string } }
 
 export function initFirebase() {
-  if (!getApps().length) {
-    const cfg = window.__firebase_config
-    if (!cfg || !cfg.apiKey) {
-      console.warn('Firebase config not found in window.__firebase_config. Please add credentials to public/config.js')
-      return false
-    }
-    try {
+  try {
+    if (!getApps().length) {
+      // Try to get config from window or use fallback
+      const cfg = window.__firebase_config || {
+        apiKey: "AIzaSyDdiGh5eFxcdbbhyAX88_cDtayTn1jqAOQ",
+        authDomain: "idea-forgr-2.firebaseapp.com",
+        projectId: "idea-forgr-2",
+        storageBucket: "idea-forgr-2.appspot.com",
+        messagingSenderId: "694629924305",
+        appId: "1:694629924305:web:e7c2129fa00d076168f4f0"
+      }
+      
+      if (!cfg || !cfg.apiKey) {
+        console.error('Firebase config not found')
+        return false
+      }
+      
       initializeApp(cfg)
+      console.log('Firebase initialized successfully')
       return true
-    } catch (err) {
-      console.error('Firebase init error:', err)
-      return false
     }
+    return true
+  } catch (err) {
+    console.error('Firebase init error:', err)
+    return false
   }
-  return true
 }
 
 export function getFirebaseAuth() {
@@ -46,7 +57,7 @@ export function getFirebaseFirestore() {
 }
 
 export function appId() {
-  return window.__app_id || 'ideaforge'
+  return window.__app_id || 'idea-forgr-2'
 }
 
 // Firebase configuration for deployment
