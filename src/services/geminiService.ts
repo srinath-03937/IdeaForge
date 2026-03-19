@@ -24,14 +24,14 @@ function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Pa
     let diagram = 'flowchart TD\n'
     
     // Main idea node with styling
-    diagram += `    A[" ${ideaShort}"]:::idea\n`
+    diagram += `    A["${ideaShort}"]:::idea\n`
     
     // Research phase
-    diagram += `    B[" Research Phase"]:::research\n`
+    diagram += `    B["Research Phase"]:::research\n`
     diagram += `    A --> B\n`
     
     // GitHub search workflow
-    diagram += `    C[" GitHub Search"]:::search\n`
+    diagram += `    C["GitHub Search"]:::search\n`
     diagram += `    B --> C\n`
     
     // Repository nodes (dynamic based on actual search)
@@ -42,7 +42,7 @@ function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Pa
           const repoName = sanitize(contextRepos[i]?.full_name?.split('/')[1] || `Repo${i + 1}`)
           const nodeId = String.fromCharCode(68 + i) // D, E, F, G, H
           repoNodes.push(nodeId)
-          diagram += `    ${nodeId}[" ${repoName}"]:::repo\n`
+          diagram += `    ${nodeId}["${repoName}"]:::repo\n`
           diagram += `    C --> ${nodeId}\n`
         } catch (e) {
           console.warn(`Error processing repo ${i}:`, e)
@@ -51,18 +51,18 @@ function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Pa
     }
     
     // Patent search workflow
-    diagram += `    I[" Patent Analysis"]:::search\n`
+    diagram += `    I["Patent Search"]:::search\n`
     diagram += `    B --> I\n`
     
-    // Patent nodes (dynamic based on actual results)
+    // Patent nodes (dynamic based on actual search)
     const patentNodes = []
     if (patentCount > 0) {
       for (let i = 0; i < patentCount; i++) {
         try {
           const patentName = sanitize(patents[i]?.title || `Patent${i + 1}`)
-          const nodeId = String.fromCharCode(74 + i) // J, K, L, M
+          const nodeId = String.fromCharCode(73 + i) // I, J, K, L
           patentNodes.push(nodeId)
-          diagram += `    ${nodeId}[" ${patentName}"]:::patent\n`
+          diagram += `    ${nodeId}["${patentName}"]:::patent\n`
           diagram += `    I --> ${nodeId}\n`
         } catch (e) {
           console.warn(`Error processing patent ${i}:`, e)
@@ -71,55 +71,41 @@ function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Pa
     }
     
     // AI Analysis phase
-    diagram += `    N[" AI Analysis"]:::analysis\n`
-    
-    // Connect repos to AI analysis
+    diagram += `    M["AI Analysis"]:::analysis\n`
     if (repoNodes.length > 0) {
       for (const nodeId of repoNodes) {
-        diagram += `    ${nodeId} --> N\n`
+        diagram += `    ${nodeId} --> M\n`
       }
+    } else {
+      diagram += `    C --> M\n`
     }
     
-    // Connect patents to AI analysis
     if (patentNodes.length > 0) {
       for (const nodeId of patentNodes) {
-        diagram += `    ${nodeId} --> N\n`
+        diagram += `    ${nodeId} --> M\n`
       }
+    } else {
+      diagram += `    I --> M\n`
     }
     
-    // If no repos or patents, connect directly
-    if (repoNodes.length === 0 && patentNodes.length === 0) {
-      diagram += `    C --> N\n`
-      diagram += `    I --> N\n`
-    }
+    // Results phase
+    diagram += `    R["Results"]:::result\n`
+    diagram += `    M --> R\n`
     
-    // Feasibility assessment
-    diagram += `    O[" Feasibility Assessment"]:::assessment\n`
-    diagram += `    N --> O\n`
-    
-    // Novelty evaluation
-    diagram += `    P[" Novelty Evaluation"]:::assessment\n`
-    diagram += `    N --> P\n`
-    
-    // Roadmap generation
-    diagram += `    Q[" Roadmap Generation"]:::planning\n`
-    diagram += `    O --> Q\n`
-    diagram += `    P --> Q\n`
-    
-    // Starter code
-    diagram += `    R[" Starter Code"]:::code\n`
-    diagram += `    Q --> R\n`
-    
-    // Final result
-    diagram += `    S[" Ready to Build"]:::result\n`
+    // Score
+    diagram += `    S["Score"]:::score\n`
     diagram += `    R --> S\n`
     
-    // Enhanced styling with better colors and effects
-    diagram += '\n    %% Styling definitions\n'
-    diagram += '    classDef idea fill:#10B981,stroke:#059669,stroke-width:3px,color:#fff,font-weight:bold,font-size:16px\n'
-    diagram += '    classDef research fill:#3B82F6,stroke:#1D4ED8,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef search fill:#06B6D4,stroke:#0891B2,stroke-width:2px,color:#fff\n'
-    diagram += '    classDef repo fill:#14B8A6,stroke:#059669,stroke-width:2px,color:#fff\n'
+    // Styling definitions
+    diagram += '\n'
+    diagram += '    classDef ideaStyle fill:#10B981,stroke:#059669,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef researchStyle fill:#3B82F6,stroke:#1D4ED8,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef searchStyle fill:#06B6D4,stroke:#0891B2,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef repoStyle fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef patentStyle fill:#EC4899,stroke:#BE185D,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef analysisStyle fill:#8B5CF6,stroke:#6D28D9,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef resultStyle fill:#10B981,stroke:#059669,stroke-width:2px,color:#fff\n'
+    diagram += '    classDef scoreStyle fill:#6B7280,stroke:#4B5563,stroke-width:2px,color:#fff\n'
     diagram += '    classDef patent fill:#EC4899,stroke:#BE185D,stroke-width:2px,color:#fff\n'
     diagram += '    classDef analysis fill:#8B5CF6,stroke:#6D28D9,stroke-width:2px,color:#fff\n'
     diagram += '    classDef assessment fill:#F59E0B,stroke:#D97706,stroke-width:2px,color:#fff\n'

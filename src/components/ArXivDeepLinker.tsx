@@ -46,10 +46,10 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     
     setLoading(true)
     try {
-      // Use direct ArXiv API with HTTPS
-      const apiUrl = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+      // Use CORS proxy to avoid cross-origin issues
+      const proxyUrl = `https://cors-anywhere.herokuapp.com/https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
       
-      const response = await fetch(apiUrl)
+      const response = await fetch(proxyUrl)
       const text = await response.text()
       
       if (!text || text.trim() === '') {
