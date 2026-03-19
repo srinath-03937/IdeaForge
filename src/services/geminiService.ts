@@ -14,7 +14,8 @@ function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Pa
         .replace(/\s+/g, ' ')                       // Collapse multiple spaces
         .replace(/^\s+|\s+$/g, '')                  // Trim leading/trailing spaces
         .replace(/[0-9]+/g, '')                     // Remove numbers that might cause path issues
-        .substring(0, 15)                            // Further limit length to prevent issues
+        .replace(/[.\-_]/g, '')                     // Remove dots, hyphens, underscores
+        .substring(0, 10)                            // Very short length to prevent issues
     }
     
     const ideaShort = sanitize(prompt) || 'User Idea'
