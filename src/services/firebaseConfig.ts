@@ -6,7 +6,17 @@ declare global { interface Window { __firebase_config:any; __app_id?:string } }
 
 export function initFirebase(){
   if(!getApps().length){
-    const cfg = window.__firebase_config
+    const cfg = window.__firebase_config || {
+      // Hardcoded fallback configuration
+      apiKey: "AIzaSyCdyPvFnhdPWbU9wpMApdk2n-ACUBT1p5I",
+      authDomain: "ideaforge-51a7f.firebaseapp.com",
+      projectId: "ideaforge-51a7f",
+      storageBucket: "ideaforge-51a7f.firebasestorage.app",
+      messagingSenderId: "989454342380",
+      appId: "1:989454342380:web:3910f7c6615bbbe5b8edc9",
+      measurementId: "G-QHQJQ1JCHG"
+    }
+    
     if(!cfg || !cfg.apiKey){
       console.warn('Firebase config not found in window.__firebase_config. Please add credentials to public/config.js')
       // Try environment variables as fallback
@@ -33,6 +43,10 @@ export function initFirebase(){
     }
     try {
       initializeApp(cfg)
+      console.log('Firebase initialized successfully with config source:', {
+        window: !!(window as any).__firebase_config,
+        fallback: !!(window as any).__firebase_config === undefined
+      })
       return true
     } catch(err){
       console.error('Firebase init error:', err)
