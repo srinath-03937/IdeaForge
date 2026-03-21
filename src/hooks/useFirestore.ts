@@ -25,69 +25,93 @@ export function useFirestore(){
   const [history, setHistory] = React.useState<ForgeDoc[]>([])
 
   const loadHistory = async () => {
-    const fs = getFirebaseFirestore()
-    if (!fs) {
-      console.warn('Firestore not initialized')
-      return
+    try {
+      const fs = getFirebaseFirestore()
+      if (!fs) {
+        console.warn('Firestore not initialized')
+        return
+      }
+      const path = `artifacts/${appId()}/forges`
+      const q = query(collection(fs, path))
+      const snap = await getDocs(q)
+      const docs = snap.docs.map(d=>({ id: d.id, ...d.data() } as ForgeDoc))
+      // Sort by createdAt descending (newest first)
+      docs.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0
+        const timeB = b.createdAt?.toMillis?.() || 0
+        return timeB - timeA
+      })
+      setHistory(docs)
+    } catch (err) {
+      console.warn('Failed to load history (Firebase permissions may be required):', err)
+      setHistory([]) // Set empty history as fallback
     }
-    const path = `artifacts/${appId()}/forges`
-    const q = query(collection(fs, path))
-    const snap = await getDocs(q)
-    const docs = snap.docs.map(d=>({ id: d.id, ...d.data() } as ForgeDoc))
-    // Sort by createdAt descending (newest first)
-    docs.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis?.() || 0
-      const timeB = b.createdAt?.toMillis?.() || 0
-      return timeB - timeA
-    })
-    setHistory(docs)
   }
 
   const pinPaperToForge = async (forgeId: string, paper: any) => {
-    const fs = getFirebaseFirestore()
-    if (!fs) return
-    const path = `artifacts/${appId()}/forges/${forgeId}`
-    const forgeRef = doc(fs, path)
-    const forgeSnap = await getDocs(query(collection(fs, `artifacts/${appId()}/forges`)))
-    const forge = forgeSnap.docs.find(d => d.id === forgeId)
-    if (!forge) return
-    const pinnedPapers = forge.data()?.pinnedPapers || []
-    const exists = pinnedPapers.find((p: any) => p.id === paper.id)
-    if (!exists) {
-      pinnedPapers.push({
-        ...paper,
-        pinnedAt: Timestamp.now()
-      })
-      await updateDoc(forgeRef, { pinnedPapers })
-      console.log('Paper pinned to forge')
+    try {
+      const fs = getFirebaseFirestore()
+      if (!fs) {
+        console.warn('Firestore not initialized')
+        return
+      }
+      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const forgeRef = doc(fs, path)
+      const forgeSnap = await getDocs(query(collection(fs, `artifacts/${appId()}/forges`)))
+      const forge = forgeSnap.docs.find(d => d.id === forgeId)
+      if (!forge) return
+      const pinnedPapers = forge.data()?.pinnedPapers || []
+      const exists = pinnedPapers.find((p: any) => p.id === paper.id)
+      if (!exists) {
+        pinnedPapers.push({
+          ...paper,
+          pinnedAt: Timestamp.now()
+        })
+        await updateDoc(forgeRef, { pinnedPapers })
+        console.log('Paper pinned to forge')
+      }
+    } catch (err) {
+      console.warn('Failed to pin paper to forge (Firebase permissions may be required):', err)
     }
   }
 
   const synthesizeFindings = async (forgeId: string, findings: string) => {
-    const fs = getFirebaseFirestore()
-    if (!fs) return
-    const path = `artifacts/${appId()}/forges/${forgeId}`
-    const forgeRef = doc(fs, path)
-    await updateDoc(forgeRef, { synthesizedFindings: findings })
-    console.log('Findings synthesized for forge')
+    try {
+      const fs = getFirebaseFirestore()
+      if (!fs) return
+      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const forgeRef = doc(fs, path)
+      await updateDoc(forgeRef, { synthesizedFindings: findings })
+      console.log('Findings synthesized for forge')
+    } catch (err) {
+      console.warn('Failed to synthesize findings (Firebase permissions may be required):', err)
+    }
   }
 
   const calculatePatentSimilarity = async (forgeId: string, score: number) => {
-    const fs = getFirebaseFirestore()
-    if (!fs) return
-    const path = `artifacts/${appId()}/forges/${forgeId}`
-    const forgeRef = doc(fs, path)
-    await updateDoc(forgeRef, { patentSimilarityScore: score })
-    console.log('Patent similarity score updated')
+    try {
+      const fs = getFirebaseFirestore()
+      if (!fs) return
+      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const forgeRef = doc(fs, path)
+      await updateDoc(forgeRef, { patentSimilarityScore: score })
+      console.log('Patent similarity score updated')
+    } catch (err) {
+      console.warn('Failed to update patent similarity (Firebase permissions may be required):', err)
+    }
   }
 
   const updateLifecycleTag = async (forgeId: string, tag: string) => {
-    const fs = getFirebaseFirestore()
-    if (!fs) return
-    const path = `artifacts/${appId()}/forges/${forgeId}`
-    const forgeRef = doc(fs, path)
-    await updateDoc(forgeRef, { lifecycleTag: tag })
-    console.log('Lifecycle tag updated')
+    try {
+      const fs = getFirebaseFirestore()
+      if (!fs) return
+      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const forgeRef = doc(fs, path)
+      await updateDoc(forgeRef, { lifecycleTag: tag })
+      console.log('Lifecycle tag updated')
+    } catch (err) {
+      console.warn('Failed to update lifecycle tag (Firebase permissions may be required):', err)
+    }
   }
 
   React.useEffect(() => {
