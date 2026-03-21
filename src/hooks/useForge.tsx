@@ -1,7 +1,6 @@
 import React from 'react'
 import { doc, setDoc, Timestamp } from 'firebase/firestore'
 import { getFirebaseFirestore, appId } from '../services/firebaseConfig'
-import useAuth from './useAuth'
 import { searchGitHubRepos } from '../services/githubService'
 import { callGemini } from '../services/geminiService'
 import { AnalysisResult } from '../types'
@@ -26,7 +25,6 @@ const ForgeContext = React.createContext<{
 export function ForgeProvider({ children }: { children: React.ReactNode }) {
   const [currentForge, setCurrentForge] = React.useState<CurrentForge>({ id: 'new', idea: '' })
   const [shouldSearchPapers, setShouldSearchPapers] = React.useState(false)
-  const { user } = useAuth()
 
   const setIdea = (idea: string) => {
     console.log('setIdea called with:', idea)
@@ -48,18 +46,12 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
   }
 
   const startForge = async () => {
-    console.warn('startForge called, state:', { currentForgeId: currentForge.id, idea: currentForge.idea, userId: user?.uid })
+    console.warn('startForge called, state:', { currentForgeId: currentForge.id, idea: currentForge.idea })
     
     // Validate idea is not empty
     if (!currentForge.idea || currentForge.idea.trim().length === 0) {
       console.error('No idea provided')
       alert('Please enter an idea first')
-      return
-    }
-    
-    if (!user) {
-      console.error('User not authenticated')
-      alert('Please sign in first')
       return
     }
     
@@ -91,7 +83,7 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
         return
       }
       const forgeId = updated.id === 'new' ? Date.now().toString() : updated.id
-      const path = `artifacts/${appId()}/users/${user.uid}/forges/${forgeId}`
+      const path = `artifacts/${appId()}/forges/${forgeId}`
       console.log('Saving to Firestore path:', path)
       await setDoc(doc(fs, path), {
         idea: updated.idea,
