@@ -17,6 +17,9 @@ export default function MermaidDiagram({ code }: { code: string }){
       try {
         setError(null)
         
+        // Clear previous content
+        svgRef.current.innerHTML = ''
+        
         // Validate and clean the mermaid code
         let cleanCode = code
         
@@ -32,8 +35,10 @@ export default function MermaidDiagram({ code }: { code: string }){
         }
         
         const mermaidTheme = theme === 'dark' ? 'dark' : 'default'
+        
+        // Initialize Mermaid with current theme
         mermaid.initialize({ 
-          startOnLoad: true, 
+          startOnLoad: false,
           theme: mermaidTheme,
           securityLevel: 'loose',
           flowchart: { 
@@ -44,7 +49,9 @@ export default function MermaidDiagram({ code }: { code: string }){
         })
         
         // Use unique ID for each render
-        const diagramId = `mermaid-diagram-${renderKey}`
+        const diagramId = `mermaid-diagram-${renderKey}-${theme}-${Date.now()}`
+        
+        console.log('Rendering Mermaid diagram:', { theme, diagramId, cleanCode: cleanCode.substring(0, 100) })
         
         try {
           const { svg } = await mermaid.render(diagramId, cleanCode)
@@ -52,29 +59,39 @@ export default function MermaidDiagram({ code }: { code: string }){
           if (svgRef.current) {
             svgRef.current.innerHTML = svg
             setError(null)
+            console.log('Mermaid diagram rendered successfully')
           }
         } catch (renderErr) {
           console.error('Mermaid render error, trying fallback:', renderErr)
           
-          // Try with a simpler diagram
-          const fallbackCode = `flowchart TD\n    A["💡 Idea"]\n    B["🔍 Research"]\n    C["📊 Results"]\n    A --> B\n    B --> C\n    style A fill:#10B981\n    style B fill:#3B82F6\n    style C fill:#F59E0B`
+          // Try with a simpler diagram with theme-aware colors
+          const fallbackColors = theme === 'dark' 
+            ? 'style A fill:#10B981,color:#fff\n    style B fill:#3B82F6,color:#fff\n    style C fill:#F59E0B,color:#fff'
+            : 'style A fill:#10B981,color:#fff\n    style B fill:#3B82F6,color:#fff\n    style C fill:#F59E0B,color:#fff'
+          
+          const fallbackCode = `flowchart TD\n    A["💡 Idea"]\n    B["🔍 Research"]\n    C["📊 Results"]\n    A --> B\n    B --> C\n    ${fallbackColors}`
           
           const { svg } = await mermaid.render(`${diagramId}-fallback`, fallbackCode)
           
           if (svgRef.current) {
             svgRef.current.innerHTML = svg
             setError(null)
+            console.log('Fallback Mermaid diagram rendered successfully')
           }
         }
       } catch (err) {
         console.error('Mermaid render error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to render diagram')
+        // Don't set error state to avoid showing error on screen
+        // The fallback diagram will be rendered instead
         // Retry with a different key
         setRenderKey(k => k + 1)
       }
     }
     
-    renderDiagram()
+    // Add a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(renderDiagram, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [code, theme, renderKey])
   
   // Enhanced fallback with cleaner UI

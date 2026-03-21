@@ -77,7 +77,6 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
       const result = await callGemini(currentForge.idea, repos)
       console.log('Gemini result:', result)
 
-      // Always reset loading state regardless of success/failure
       const updated = { ...currentForge, result, loading: false }
       setCurrentForge(updated)
 
@@ -102,7 +101,6 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
       console.log('Forge saved successfully!')
     } catch (err) {
       console.error('Forge error:', err)
-      // Ensure loading state is reset on error
       setCurrentForge((f: CurrentForge) => ({ ...f, loading: false }))
     }
   }

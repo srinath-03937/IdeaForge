@@ -1,9 +1,16 @@
 export interface Repo{
+  id: number
+  name: string
   full_name: string
   description?: string
-  stargazers_count?: number
+  stargazers_count: number
+  forks_count: number
+  open_issues_count: number
   language?: string
-  html_url?: string
+  html_url: string
+  updated_at: string
+  topics: string[]
+  license?: string | null
 }
 
 export interface Patent{

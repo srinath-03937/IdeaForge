@@ -38,6 +38,15 @@ export default function ResultTabs({ result }: { result?: any }) {
     patents: result.patents
   })
   
+  // Remove duplicates and ensure unique keys
+  const uniqueRepos = result.validatedRepos?.filter((repo: any, index: number, self: any[]) => 
+    self.findIndex((r: any) => r.full_name === repo.full_name) === index
+  ) || []
+  
+  const uniquePatents = result.patents?.filter((patent: any, index: number, self: any[]) => 
+    self.findIndex((p: any) => p.id === patent.id || p.title === patent.title) === index
+  ) || []
+  
   return (
     <div className="mt-4 space-y-5">
       {/* Refined Concept Section */}
@@ -92,9 +101,9 @@ export default function ResultTabs({ result }: { result?: any }) {
         </button>
         {expandedSections['repos'] && (
           <div className="p-3 sm:p-4 space-y-2 bg-emerald-50 dark:bg-black/20 border-t-2 border-emerald-200 dark:border-white/10">
-            {result.validatedRepos && result.validatedRepos.length > 0 ? (
-              result.validatedRepos.map((r: any, idx: number) => (
-                <RepoCard key={r?.full_name || r?.id || `repo-${idx}`} repo={r} />
+            {uniqueRepos.length > 0 ? (
+              uniqueRepos.map((r: any, idx: number) => (
+                <RepoCard key={`repo-${r.full_name || r.id}-${idx}`} repo={r} />
               ))
             ) : (
               <div className="text-sm text-slate-600 dark:text-white/60">No repos found</div>
@@ -114,9 +123,9 @@ export default function ResultTabs({ result }: { result?: any }) {
         </button>
         {expandedSections['patents'] && (
           <div className="p-3 sm:p-4 space-y-2 bg-cyan-50 dark:bg-black/20 border-t-2 border-cyan-200 dark:border-white/10">
-            {result.patents && result.patents.length > 0 ? (
-              result.patents.map((p: any, i: number) => (
-                <PatentCard key={p.id || p.title || `patent-${i}`} title={p.title || 'Unknown'} abstract={p.abstract} />
+            {uniquePatents.length > 0 ? (
+              uniquePatents.map((p: any, i: number) => (
+                <PatentCard key={`patent-${p.id || p.title}-${i}`} title={p.title || 'Unknown'} abstract={p.abstract} />
               ))
             ) : (
               <div className="text-sm text-slate-600 dark:text-white/60">No patents found</div>
@@ -157,8 +166,8 @@ export default function ResultTabs({ result }: { result?: any }) {
           </button>
           {expandedSections['code'] && (
             <div className="p-3 sm:p-4 bg-amber-50 dark:bg-black/20 border-t-2 border-amber-200 dark:border-white/10 overflow-x-auto">
-              <pre className="p-3 rounded-lg text-xs sm:text-sm overflow-auto bg-slate-900 dark:bg-black/80 border border-slate-200 dark:border-white/10 text-slate-100 dark:text-white/90">
-                {result.starterCode}
+              <pre className="p-3 rounded-lg text-xs sm:text-sm overflow-auto bg-slate-900 dark:bg-black/80 border border-slate-200 dark:border-white/10 text-slate-100 dark:text-white/90 whitespace-pre font-mono leading-relaxed">
+                {result.starterCode?.replace(/\\n/g, '\n').replace(/\\t/g, '\t')}
               </pre>
             </div>
           )}

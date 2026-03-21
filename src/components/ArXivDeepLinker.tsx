@@ -46,8 +46,8 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     
     setLoading(true)
     try {
-      // Use CORS proxy to avoid cross-origin issues
-      const proxyUrl = `https://cors-anywhere.herokuapp.com/https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+      // Use Vite proxy to avoid CORS issues
+      const proxyUrl = `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
       
       const response = await fetch(proxyUrl)
       const text = await response.text()
