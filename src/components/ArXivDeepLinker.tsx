@@ -52,8 +52,8 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
       
       // Try multiple approaches in order of preference
       const approaches = [
-        // 1. Our serverless API route (bypasses CORS)
-        `/api/arxiv?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 1. Vite proxy (works in development)
+        `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
         // 2. Direct API call (may work in some environments)
         `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
         // 3. CORS proxy service (works in production)
