@@ -55,11 +55,13 @@ function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Pa
         const patentName = sanitize(patents[i]?.title || `Patent ${i + 1}`)
         diagram += `        ${patentName}\n`
         // Add sub-branches for patent details
-        if (patents[i]?.inventors && Array.isArray(patents[i].inventors) && patents[i].inventors.length > 0) {
-          diagram += `          Inventors: ${patents[i].inventors.slice(0, 2).join(', ')}\n`
+        const patentInventors = patents[i]?.inventors
+        if (patentInventors && Array.isArray(patentInventors) && patentInventors.length > 0) {
+          diagram += `          Inventors: ${patentInventors.slice(0, 2).join(', ')}\n`
         }
-        if (patents[i]?.technologies && Array.isArray(patents[i].technologies) && patents[i].technologies.length > 0) {
-          diagram += `          Technologies: ${patents[i].technologies.slice(0, 2).join(', ')}\n`
+        const patentTechnologies = patents[i]?.technologies
+        if (patentTechnologies && Array.isArray(patentTechnologies) && patentTechnologies.length > 0) {
+          diagram += `          Technologies: ${patentTechnologies.slice(0, 2).join(', ')}\n`
         }
       }
     }
@@ -189,104 +191,84 @@ IMPORTANT: For the mermaid field, generate a mindmap diagram with:
       throw new Error(json.error.message || 'Gemini API error')
     }
     
-    if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
-      const text = json.candidates[0].content.parts[0].text
-      console.log('Gemini text response (first 500 chars):', text.substring(0, 500))
-      
-      try {
-        // Try to extract JSON from response (handle markdown code blocks)
-        let jsonStr = text
-        
-        // Remove markdown code blocks if present
-        const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-        if (codeBlockMatch) {
-          jsonStr = codeBlockMatch[1]
-        } else {
-          // Try to find JSON object - look for first { and last }
-          const firstBrace = text.indexOf('{')
-          const lastBrace = text.lastIndexOf('}')
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            jsonStr = text.substring(firstBrace, lastBrace + 1)
-          }
-        }
-        
-        // Clean up JSON string - fix common issues
-        jsonStr = jsonStr
-          .trim()
-          .replace(/,\s*}/g, '}')  // Remove trailing commas
-          .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
-          .replace(/[\x00-\x1F\x7F]/g, '')  // Remove control characters
-          .replace(/\\n/g, '\\\\n')  // Fix newlines
-          .replace(/\\r/g, '\\\\r')  // Fix carriage returns
-          .replace(/\\t/g, '\\\\t')  // Fix tabs
-        
-        console.log('Cleaned JSON string (first 200 chars):', jsonStr.substring(0, 200))
-        
-        const parsed = JSON.parse(jsonStr)
-        console.log('Successfully parsed Gemini response')
-        
-        // Use real patents in the response
-        const responsePatents = parsed.patents && parsed.patents.length > 0 ? parsed.patents : patents
-        
-        // Ensure patents and validatedRepos are properly structured
-        const patentsArray = responsePatents.map((p: any) => 
-          typeof p === 'string' ? { title: p, abstract: '' } : p
-        ).filter((p: any) => p && p.title)
-        
-        const validatedReposArray = (parsed.validatedRepos || []).map((r: any) => 
-          typeof r === 'string' ? contextRepos.find(cr => cr.full_name === r) || { full_name: r, html_url: '#' } : r
-        ).filter((r: any) => r && r.full_name)
-        
-        // Generate dynamic diagram based on actual results
-        const dynamicMermaid = generateDynamicDiagram(prompt, validatedReposArray, patentsArray)
-        
-        console.log('Dynamic mermaid diagram generated:', dynamicMermaid.substring(0, 200))
-        
-        const result = {
-          refinedConcept: parsed.refinedConcept || 'Refined idea concept',
-          engineeringReportMarkdown: parsed.engineeringReportMarkdown || '## Engineering Report\nNo report available',
-          feasibility: Math.min(100, Math.max(0, parsed.feasibility || 65)),
-          novelty: Math.min(100, Math.max(0, parsed.novelty || 60)),
-          patents: patentsArray,
-          validatedRepos: validatedReposArray,
-          roadmap: parsed.roadmap || ['Research', 'Prototype', 'Deploy'],
-          mermaid: dynamicMermaid,
-          starterCode: parsed.starterCode || '// Start your implementation\nconsole.log("Building...");'
-        }
-        console.log('Structured result:', result)
-        return result
-      } catch (parseErr) {
-        console.error('Failed to parse JSON from Gemini response:', parseErr)
-        console.error('Problematic JSON (first 500 chars):', jsonStr?.substring(0, 500) || 'No JSON string available')
-        // Don't fail - use fallback instead
-      }
-      
-      // Fallback: use real patents with structured response
-      const fallbackPatents = patents.map((p, i) => ({
-        title: p.title,
-        abstract: p.abstract,
-        id: p.id,
-        inventors: p.inventors,
-        filingDate: p.filingDate,
-        technologies: p.technologies
+    let jsonStr = json.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    console.log('Raw Gemini response (first 200 chars):', jsonStr.substring(0, 200))
+    
+    // Clean up JSON string - fix common issues
+    jsonStr = jsonStr
+      .trim()
+      .replace(/,\s*}/g, '}')  // Remove trailing commas
+      .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+      .replace(/[\x00-\x1F\x7F]/g, '')  // Remove control characters
+      .replace(/\\n/g, '\\\\n')  // Fix newlines
+      .replace(/\\r/g, '\\\\r')  // Fix carriage returns
+      .replace(/\\t/g, '\\\\t')  // Fix tabs
+    
+    console.log('Cleaned JSON (first 200 chars):', jsonStr.substring(0, 200))
+    
+    let parsed
+    try {
+      parsed = JSON.parse(jsonStr)
+    } catch (parseErr) {
+      console.error('Failed to parse JSON from Gemini response:', parseErr)
+      console.error('Problematic JSON (first 500 chars):', jsonStr?.substring(0, 500) || 'No JSON string available')
+      // Don't fail - use fallback instead
+      parsed = null
+    }
+    
+    if (parsed) {
+      const patentsArray = patents.map((p, i) => ({
+        title: p.title || 'Patent title',
+        abstract: p.abstract || 'Patent abstract',
+        id: p.id || `patent_${i}`,
+        inventors: p.inventors || [],
+        filingDate: p.filingDate || new Date().toISOString().split('T')[0],
+        technologies: p.technologies || []
       }))
       
-      const mermaidDiagram = generateDynamicDiagram(prompt, contextRepos, fallbackPatents)
-      console.log('Fallback mermaid diagram generated:', mermaidDiagram.substring(0, 200))
-    
-      return {
-        refinedConcept: text.substring(0, 500),
-        engineeringReportMarkdown: `## Analysis\n\n${text}`,
-        feasibility: 70,
-        novelty: 65,
-        patents: fallbackPatents,
-        validatedRepos: contextRepos.slice(0, 3),
-        roadmap: ['Research', 'Prototype', 'Deploy'],
-        mermaid: mermaidDiagram,
-        starterCode: '// Start implementing your idea!\nconsole.log("Ready to build!");'
+      const validatedReposArray = contextRepos.map((r, i) => r.full_name || `repo_${i}`)
+      
+      const dynamicMermaid = generateDynamicDiagram(prompt, contextRepos, patents)
+      
+      const result = {
+        refinedConcept: parsed.refinedConcept || prompt,
+        engineeringReportMarkdown: parsed.engineeringReportMarkdown || `Analysis for ${prompt}`,
+        feasibility: Math.min(100, Math.max(0, parsed.feasibility || 75)),
+        novelty: Math.min(100, Math.max(0, parsed.novelty || 70)),
+        patents: patentsArray,
+        validatedRepos: validatedReposArray,
+        roadmap: parsed.roadmap || ['Research', 'Prototype', 'Deploy'],
+        mermaid: dynamicMermaid,
+        starterCode: parsed.starterCode || '// Start your implementation\nconsole.log("Building...");'
       }
+      console.log('Structured result:', result)
+      return result
     }
-    throw new Error('Invalid Gemini response format')
+      
+    // Fallback: use real patents with structured response
+    const fallbackPatents = patents.map((p, i) => ({
+      title: p.title,
+      abstract: p.abstract,
+      id: p.id,
+      inventors: p.inventors,
+      filingDate: p.filingDate,
+      technologies: p.technologies
+    }))
+    
+    const mermaidDiagram = generateDynamicDiagram(prompt, contextRepos, fallbackPatents)
+    console.log('Fallback mermaid diagram generated:', mermaidDiagram.substring(0, 200))
+    
+    return {
+      refinedConcept: prompt,
+      engineeringReportMarkdown: `## Analysis\n\nBased on the search results for "${prompt}", here's the analysis...`,
+      feasibility: 70,
+      novelty: 65,
+      patents: fallbackPatents,
+      validatedRepos: contextRepos.slice(0, 3),
+      roadmap: ['Research', 'Prototype', 'Deploy'],
+      mermaid: mermaidDiagram,
+      starterCode: '// Start implementing your idea!\nconsole.log("Ready to build!");'
+    }
   } catch (err) {
     console.error('Gemini error:', err)
     // Generate dynamic diagram even in error case
