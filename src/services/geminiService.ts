@@ -119,7 +119,7 @@ async function backoffFetch(url:string, opts:any, attempts=3){
 }
 
 export async function callGemini(prompt:string, contextRepos:any[] = []): Promise<GeminiResponse>{
-  const apiKey = (window as any).__gemini_api_key
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__gemini_api_key
   if (!apiKey) throw new Error('Gemini API key not configured')
   
   try {
