@@ -52,14 +52,14 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
       
       // Try multiple approaches in order of preference
       const approaches = [
-        // 1. Direct API call (may work in some environments)
+        // 1. Our serverless API route (bypasses CORS)
+        `/api/arxiv?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 2. Direct API call (may work in some environments)
         `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
-        // 2. CORS proxy service (works in production)
+        // 3. CORS proxy service (works in production)
         `https://cors-anywhere.herokuapp.com/https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
-        // 3. Alternative CORS proxy
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`)}`,
-        // 4. Local proxy (development only)
-        `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+        // 4. Alternative CORS proxy
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`)}`
       ]
       
       for (const apiUrl of approaches) {
