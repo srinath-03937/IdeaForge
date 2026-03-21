@@ -9,7 +9,27 @@ export function initFirebase(){
     const cfg = window.__firebase_config
     if(!cfg || !cfg.apiKey){
       console.warn('Firebase config not found in window.__firebase_config. Please add credentials to public/config.js')
-      return false
+      // Try environment variables as fallback
+      const envConfig = {
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID,
+        measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+      }
+      if (!envConfig.apiKey) {
+        console.warn('Firebase config not found in environment variables either')
+        return false
+      }
+      try {
+        initializeApp(envConfig)
+        return true
+      } catch(err){
+        console.error('Firebase init error with env config:', err)
+        return false
+      }
     }
     try {
       initializeApp(cfg)

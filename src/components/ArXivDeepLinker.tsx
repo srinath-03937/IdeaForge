@@ -46,11 +46,23 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     
     setLoading(true)
     try {
-      // Use Vite proxy to avoid CORS issues
-      const proxyUrl = `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+      // Use direct ArXiv API call with CORS proxy for production
+      const apiUrl = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
       
-      const response = await fetch(proxyUrl)
-      const text = await response.text()
+      let response: Response
+      let text: string
+      
+      try {
+        // Try direct API call first
+        response = await fetch(apiUrl)
+        text = await response.text()
+      } catch (corsError) {
+        console.warn('Direct API call failed, trying proxy:', corsError)
+        // Fallback to proxy (works in development)
+        const proxyUrl = `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+        response = await fetch(proxyUrl)
+        text = await response.text()
+      }
       
       if (!text || text.trim() === '') {
         throw new Error('Empty response from ArXiv API')
