@@ -46,22 +46,53 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     
     setLoading(true)
     try {
-      // Use direct ArXiv API call with CORS proxy for production
-      const apiUrl = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
-      
+      // Use CORS proxy service for production compatibility
       let response: Response
-      let text: string
+      let text: string = ''
       
-      try {
-        // Try direct API call first
-        response = await fetch(apiUrl)
-        text = await response.text()
-      } catch (corsError) {
-        console.warn('Direct API call failed, trying proxy:', corsError)
-        // Fallback to proxy (works in development)
-        const proxyUrl = `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
-        response = await fetch(proxyUrl)
-        text = await response.text()
+      // Try multiple approaches in order of preference
+      const approaches = [
+        // 1. Direct API call (may work in some environments)
+        `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 2. CORS proxy service (works in production)
+        `https://cors-anywhere.herokuapp.com/https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 3. Alternative CORS proxy
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`)}`,
+        // 4. Local proxy (development only)
+        `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`
+      ]
+      
+      for (const apiUrl of approaches) {
+        try {
+          console.log('Trying API approach:', apiUrl.split('/')[2]) // Log the domain being tried
+          response = await fetch(apiUrl, {
+            headers: {
+              'Accept': 'application/xml, text/xml, */*',
+              'User-Agent': 'IdeaForge-Vision/1.0'
+            }
+          })
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+          
+          text = await response.text()
+          
+          if (text && text.trim() !== '' && text.includes('<feed>')) {
+            console.log('Successfully fetched ArXiv data')
+            break // Success, exit the loop
+          } else {
+            throw new Error('Invalid response format')
+          }
+        } catch (error: any) {
+          console.warn(`API approach failed: ${apiUrl.split('/')[2]} - ${error.message}`)
+          if (apiUrl === approaches[approaches.length - 1]) {
+            // Last approach failed, throw the error
+            throw error
+          }
+          // Continue to next approach
+          continue
+        }
       }
       
       if (!text || text.trim() === '') {
