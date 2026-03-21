@@ -11,6 +11,7 @@ export interface CurrentForge {
   result?: AnalysisResult
   loading?: boolean
   patentSimilarityScore?: number
+  synthesizedFindings?: string
 }
 
 const ForgeContext = React.createContext<{
@@ -20,6 +21,7 @@ const ForgeContext = React.createContext<{
   loadForgeFromHistory: (forge: any) => void
   shouldSearchPapers: boolean
   clearPaperSearchTrigger: () => void
+  updateSynthesizedFindings: (findings: string) => void
 } | null>(null)
 
 export function ForgeProvider({ children }: { children: React.ReactNode }) {
@@ -101,6 +103,10 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
     setShouldSearchPapers(false)
   }
 
+  const updateSynthesizedFindings = (findings: string) => {
+    setCurrentForge((prev: CurrentForge) => ({ ...prev, synthesizedFindings: findings }))
+  }
+
   return (
     <ForgeContext.Provider value={{ 
       currentForge, 
@@ -108,7 +114,8 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
       setIdea, 
       loadForgeFromHistory,
       shouldSearchPapers,
-      clearPaperSearchTrigger
+      clearPaperSearchTrigger,
+      updateSynthesizedFindings
     }}>
       {children}
     </ForgeContext.Provider>

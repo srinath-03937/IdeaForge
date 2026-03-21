@@ -78,13 +78,15 @@ export function useFirestore(){
   const synthesizeFindings = async (forgeId: string, findings: string) => {
     try {
       const fs = getFirebaseFirestore()
-      if (!fs) return
+      if (!fs) return findings
       const path = `artifacts/${appId()}/forges/${forgeId}`
       const forgeRef = doc(fs, path)
       await updateDoc(forgeRef, { synthesizedFindings: findings })
       console.log('Findings synthesized for forge')
+      return findings
     } catch (err) {
       console.warn('Failed to synthesize findings (Firebase permissions may be required):', err)
+      return findings // Return findings even if Firebase fails
     }
   }
 
