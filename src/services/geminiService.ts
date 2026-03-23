@@ -3,7 +3,7 @@ import { Patent } from '../types'
 
 type GeminiResponse = any
 
-// Generate dynamic mermaid mind map based on actual search results and workflow
+// Generate dynamic mermaid flowchart based on actual search results and workflow
 function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Patent[]): string {
   try {
     // Very simple sanitization to prevent SVG errors
@@ -105,7 +105,7 @@ ${contextRepos.map(r => `- ${r.full_name}: ${r.description}`).join('\n')}
 PATENT CONTEXT:
 ${patentContext}
 
-Based on the patent search results, provide analysis considering:
+Based on patent search results, provide analysis considering:
 1. Patent landscape and potential conflicts
 2. Novelty assessment compared to existing patents
 3. Technical differentiation opportunities
@@ -119,16 +119,9 @@ Respond with ONLY a valid JSON object (no markdown code blocks) with these exact
   "patents": [array of patent objects with title, abstract, id, inventors, filingDate, technologies],
   "validatedRepos": [array of most relevant repo names],
   "roadmap": ["step1", "step2", "step3"],
-  "mermaid": "string - valid mermaid mindmap diagram code with complete words in boxes",
+  "mermaid": "string - valid mermaid flowchart diagram code",
   "starterCode": "string - sample code snippet"
-}
-
-IMPORTANT: For the mermaid field, generate a mindmap diagram with:
-- Complete words (no abbreviations)
-- Real repository and patent names from the analysis
-- Detailed sub-branches with specific information
-- Professional mind map structure with icons
-- All text should be complete and readable`
+}`
         }]
       }]
     }
@@ -157,8 +150,6 @@ IMPORTANT: For the mermaid field, generate a mindmap diagram with:
       let jsonStr = text
       try {
         // Try to extract JSON from response (handle markdown code blocks)
-        
-        // Remove markdown code blocks if present
         const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
         if (codeBlockMatch) {
           jsonStr = codeBlockMatch[1]
@@ -263,7 +254,7 @@ IMPORTANT: For the mermaid field, generate a mindmap diagram with:
       validatedRepos: contextRepos,
       roadmap: ['Research', 'Prototype', 'Deploy'],
       mermaid: errorMermaid,
-      starterCode: '// Error occurred - please try again\nconsole.log("Error: Unable to generate analysis");'
+      starterCode: '// Analysis failed - please try again\nconsole.log("Error occurred");'
     }
   }
 }

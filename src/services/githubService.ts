@@ -14,21 +14,22 @@ export async function searchGitHubRepos(query: string, limit?: number): Promise<
 
   const token = (import.meta as any).env?.VITE_GITHUB_TOKEN || ''
   const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'IdeaForge-App'
   }
-  
+
   if (token) {
     headers['Authorization'] = `token ${token}`
   }
 
   try {
-    const perPage = limit || 10
-    const searchUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}+in:name,description,readme&sort=stars&order=desc&per_page=${perPage}`
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${limit || 6}`
+    console.log('Searching GitHub with URL:', url)
     
-    const response = await fetch(searchUrl, { headers })
+    const response = await fetch(url, { headers })
     
     if (!response.ok) {
-      console.warn(`GitHub API returned ${response.status}, using fallback repos`)
+      console.warn('GitHub API request failed:', response.status, response.statusText)
       return FALLBACK_REPOS.slice(0, limit || 6)
     }
 
