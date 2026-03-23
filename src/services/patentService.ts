@@ -1,7 +1,7 @@
 import { Patent } from '../types'
 
 export async function searchPatents(query: string, maxResults: number = 10): Promise<Patent[]> {
-  const apiKey = (window as any).__gemini_api_key
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__gemini_api_key
   if (!apiKey) {
     throw new Error('Gemini API key not configured')
   }
@@ -184,7 +184,7 @@ export async function analyzePatentSimilarity(idea: string, patents: Patent[]): 
   analysis: string
   recommendations: string[]
 }> {
-  const apiKey = (window as any).__gemini_api_key
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__gemini_api_key
   if (!apiKey) {
     throw new Error('Gemini API key not configured')
   }

@@ -119,7 +119,7 @@ export function useFirestore(){
     if (!fs) return
     
     try {
-      const apiKey = (window as any).__gemini_api_key
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__gemini_api_key
       if (!apiKey) throw new Error('Gemini API key not configured')
 
       const papersText = selectedPapers.map(p => `- ${p.title}: ${p.summary || p.abstract}`).join('\n')

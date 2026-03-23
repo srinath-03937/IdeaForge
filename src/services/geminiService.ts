@@ -6,90 +6,51 @@ type GeminiResponse = any
 // Generate dynamic mermaid mind map based on actual search results and workflow
 function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Patent[]): string {
   try {
-    // Sanitize labels - keep complete words but remove problematic characters
+    // Very simple sanitization to prevent SVG errors
     const sanitize = (str: string) => {
       return str
-        .replace(/[\"'`\[\]\{\}\|\\\/]/g, '')           // Remove problematic chars
-        .replace(/[^\w\s\-_.]/g, ' ')                // Replace special chars with space
-        .replace(/\s+/g, ' ')                       // Collapse multiple spaces
-        .replace(/^\s+|\s+$/g, '')                  // Trim leading/trailing spaces
-        .substring(0, 25)                            // Allow longer text for mind map
+        .replace(/[^a-zA-Z\s]/g, '') // Only letters and spaces
+        .replace(/\s+/g, ' ')        // Single spaces only
+        .trim()
+        .substring(0, 8)             // Very short labels
     }
     
     const ideaShort = sanitize(prompt) || 'Idea'
-    const repoCount = Math.min(Math.max(contextRepos?.length || 0, 0), 4)
-    const patentCount = Math.min(Math.max(patents?.length || 0, 0), 4)
+    const repoCount = Math.min(Math.max(contextRepos?.length || 0, 0), 3)
+    const patentCount = Math.min(Math.max(patents?.length || 0, 0), 2)
     
-    // Mind map style diagram with central idea
-    let diagram = 'mindmap\n  root((Idea))\n'
+    // Simple flowchart structure
+    let diagram = 'flowchart TD\n'
     
-    // Add main branches
-    diagram += `    ((${ideaShort}))\n`
+    // Main idea
+    diagram += `    A["${ideaShort}"]\n`
     
-    // Research branch
-    diagram += '    Research\n'
-    diagram += '      ::icon(fa fa-search)\n'
+    // Research
+    diagram += `    A --> B["Research"]\n`
     
-    // GitHub repositories branch
+    // GitHub search
+    diagram += `    B --> C["GitHub"]\n`
+    
+    // Add repos if any
     if (repoCount > 0) {
-      diagram += '      GitHub Repositories\n'
-      diagram += '        ::icon(fa fa-code)\n'
-      for (let i = 0; i < repoCount; i++) {
-        const repoName = sanitize(contextRepos[i]?.full_name?.split('/')[1] || `Repository ${i + 1}`)
-        diagram += `        ${repoName}\n`
-        // Add sub-branches for repo details
-        if (contextRepos[i]?.language) {
-          diagram += `          Language: ${contextRepos[i]?.language}\n`
-        }
-        if (contextRepos[i]?.stargazers_count) {
-          diagram += `          Stars: ${contextRepos[i]?.stargazers_count}\n`
-        }
-      }
+      diagram += `    C --> D["Repos"]\n`
     }
     
-    // Patents branch
+    // Patent search
+    diagram += `    B --> E["Patents"]\n`
+    
+    // Add patents if any
     if (patentCount > 0) {
-      diagram += '      Patent Analysis\n'
-      diagram += '        ::icon(fa fa-lightbulb)\n'
-      for (let i = 0; i < patentCount; i++) {
-        const patentName = sanitize(patents[i]?.title || `Patent ${i + 1}`)
-        diagram += `        ${patentName}\n`
-        // Add sub-branches for patent details
-        if (patents[i]?.inventors && Array.isArray(patents[i].inventors) && patents[i].inventors.length > 0) {
-          diagram += `          Inventors: ${patents[i].inventors.slice(0, 2).join(', ')}\n`
-        }
-        if (patents[i]?.technologies && Array.isArray(patents[i].technologies) && patents[i].technologies.length > 0) {
-          diagram += `          Technologies: ${patents[i].technologies.slice(0, 2).join(', ')}\n`
-        }
-      }
+      diagram += `    E --> F["Results"]\n`
+    } else {
+      diagram += `    C --> F["Results"]\n`
     }
-    
-    // AI Analysis branch
-    diagram += '      AI Analysis\n'
-    diagram += '        ::icon(fa fa-brain)\n'
-    diagram += '        Feasibility Assessment\n'
-    diagram += '        Novelty Evaluation\n'
-    diagram += '        Technical Analysis\n'
-    
-    // Implementation branch
-    diagram += '      Implementation\n'
-    diagram += '        ::icon(fa fa-cogs)\n'
-    diagram += '        Development Roadmap\n'
-    diagram += '        Starter Code\n'
-    diagram += '        Deployment Strategy\n'
-    
-    // Results branch
-    diagram += '      Results\n'
-    diagram += '        ::icon(fa fa-chart-line)\n'
-    diagram += '        Innovation Score\n'
-    diagram += '        Market Potential\n'
-    diagram += '        Next Steps\n'
     
     return diagram
   } catch (err) {
-    console.error('Error generating mind map diagram:', err)
-    // Return a minimal valid mind map as fallback
-    return 'mindmap\n  root((Idea))\n    Research\n      GitHub Search\n      Patent Search\n    Analysis\n      AI Processing\n      Feasibility Check\n    Implementation\n      Development\n      Testing'
+    console.error('Error generating diagram:', err)
+    // Return a minimal valid diagram as fallback
+    return 'flowchart TD\n    A["Idea"] --> B["Research"] --> C["Results"]'
   }
 }
 
@@ -119,7 +80,7 @@ async function backoffFetch(url:string, opts:any, attempts=3){
 }
 
 export async function callGemini(prompt:string, contextRepos:any[] = []): Promise<GeminiResponse>{
-  const apiKey = (window as any).__gemini_api_key
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__gemini_api_key
   if (!apiKey) throw new Error('Gemini API key not configured')
   
   try {
@@ -193,9 +154,9 @@ IMPORTANT: For the mermaid field, generate a mindmap diagram with:
       const text = json.candidates[0].content.parts[0].text
       console.log('Gemini text response (first 500 chars):', text.substring(0, 500))
       
+      let jsonStr = text
       try {
         // Try to extract JSON from response (handle markdown code blocks)
-        let jsonStr = text
         
         // Remove markdown code blocks if present
         const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
