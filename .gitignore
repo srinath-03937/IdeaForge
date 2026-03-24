@@ -17,7 +17,26 @@ build/
 .env
 .env.local
 .env.*.local
+.env.example
 public/config.js
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+firebase-debug.log
+firebase-debug.log*
+firebase.json
+.firestore
+
+# API Keys & Secrets
+*.api
+*.secret
+*.token
+*.auth
+credentials.json
+service-account.json
+google-credentials.json
 
 # IDE
 .vscode/
@@ -34,3 +53,35 @@ public/config.js
 tmp/
 temp/
 *.log
+
+# Security & Backup
+*.backup
+*.bak
+*.old
+*.orig
+*.rej
+*.patch
+*.diff
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Coverage & Reports
+coverage/
+*.lcov
+.nyc_output
+test-results/
+reports/
+
+# Package managers
+.npm
+.yarn
+.pnpm
+.eslintcache

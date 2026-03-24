@@ -8,10 +8,17 @@ interface PatentCardProps {
 }
 
 function PatentCard({ title, abstract }: PatentCardProps) {
+  // Shorten abstract to fit more content
+  const shortAbstract = abstract 
+    ? abstract.length > 120 
+      ? abstract.substring(0, 120) + '...' 
+      : abstract
+    : 'No abstract available'
+  
   return (
     <div className="p-3 rounded-lg bg-slate-100 dark:bg-white/5 border-2 border-cyan-200 dark:border-white/10">
       <div className="font-semibold text-slate-900 dark:text-white">{title}</div>
-      <div className="text-xs text-slate-600 dark:text-white/70 mt-1">{abstract}</div>
+      <div className="text-xs text-slate-600 dark:text-white/70 mt-1">{shortAbstract}</div>
     </div>
   )
 }
@@ -32,18 +39,24 @@ export default function ResultTabs({ result }: { result?: any }) {
   }
   
   console.log('ResultTabs received:', { 
-    hasRepos: !!result.validatedRepos?.length,
-    reposCount: result.validatedRepos?.length || 0,
+    hasRepos: !!result.allRepos?.length,
+    reposCount: result.allRepos?.length || 0,
+    hasValidatedRepos: !!result.validatedRepos?.length,
+    validatedReposCount: result.validatedRepos?.length || 0,
     hasPatents: !!result.patents?.length,
     patentsCount: result.patents?.length || 0,
-    repos: result.validatedRepos,
+    repos: result.allRepos,
+    validatedRepos: result.validatedRepos,
     patents: result.patents
   })
   
+  // Use all fetched repos instead of just validated ones
+  const displayRepos = result.allRepos || result.validatedRepos || []
+  
   // Remove duplicates and ensure unique keys
-  const uniqueRepos = result.validatedRepos?.filter((repo: any, index: number, self: any[]) => 
+  const uniqueRepos = displayRepos.filter((repo: any, index: number, self: any[]) => 
     self.findIndex((r: any) => r.full_name === repo.full_name) === index
-  ) || []
+  )
   
   const uniquePatents = result.patents?.filter((patent: any, index: number, self: any[]) => 
     self.findIndex((p: any) => p.id === patent.id || p.title === patent.title) === index
@@ -98,7 +111,7 @@ export default function ResultTabs({ result }: { result?: any }) {
           onClick={() => toggleSection('repos')}
           className="w-full p-3 sm:p-4 bg-emerald-50 dark:bg-black/40 hover:bg-emerald-100 dark:hover:bg-black/60 flex items-center justify-between font-semibold text-slate-900 dark:text-white transition"
         >
-          <span className="text-sm sm:text-base">📦 Validated Repos ({result.validatedRepos?.length || 0})</span>
+          <span className="text-sm sm:text-base">📦 All Repos ({uniqueRepos.length})</span>
           <span className="text-lg">{expandedSections['repos'] ? '▼' : '▶'}</span>
         </button>
         {expandedSections['repos'] && (

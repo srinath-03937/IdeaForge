@@ -32,10 +32,15 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
   const [searchQuery, setSearchQuery] = React.useState('')
   const [papers, setPapers] = React.useState<ArXivPaper[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState('')
   const [selectedPapers, setSelectedPapers] = React.useState<ArXivPaper[]>([])
   const [synthesizing, setSynthesizing] = React.useState(false)
   const [synthesisResult, setSynthesisResult] = React.useState<string>('')
   const [autoSearched, setAutoSearched] = React.useState(false)
+  const [maxPapers, setMaxPapers] = React.useState(1000)
+  const [usePagination, setUsePagination] = React.useState(false)
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [papersPerPage, setPapersPerPage] = React.useState(10)
 
   // Auto-search when component receives a forge idea
   React.useEffect(() => {
@@ -55,10 +60,10 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     
     setLoading(true)
     try {
-      console.log('Searching Crossref for:', query)
+      console.log('Searching Crossref for:', query, 'maxPapers:', maxPapers, 'usePagination:', usePagination)
       
-      // Use Crossref API directly (no CORS issues with JSON API)
-      const papers = await searchCrossref(query, 10)
+      // Use Crossref API with user-specified parameters
+      const papers = await searchCrossref(query, maxPapers, usePagination)
       
       setPapers(papers)
       console.log(`Successfully loaded ${papers.length} papers from Crossref`)
@@ -185,6 +190,46 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
           </button>
         </div>
 
+        {/* Search Controls */}
+        <div className="flex flex-wrap gap-4 mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Max Papers:</label>
+            <select
+              value={maxPapers}
+              onChange={(e) => setMaxPapers(Number(e.target.value))}
+              className="px-3 py-1 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 text-sm text-slate-900 dark:text-white"
+            >
+              <option value={100}>100 papers</option>
+              <option value={500}>500 papers</option>
+              <option value={1000}>1000 papers</option>
+              <option value={5000}>5000 papers</option>
+              <option value={10000}>10000 papers</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="pagination"
+              checked={usePagination}
+              onChange={(e) => setUsePagination(e.target.checked)}
+              className="rounded border-slate-300 dark:border-slate-600"
+            />
+            <label htmlFor="pagination" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Use pagination for large searches
+            </label>
+          </div>
+          
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {maxPapers > 1000 && !usePagination && (
+              <span className="text-amber-600 dark:text-amber-400">⚠️ Enable pagination for &gt;1000 papers</span>
+            )}
+            {maxPapers > 1000 && usePagination && (
+              <span className="text-emerald-600 dark:text-emerald-400">✅ Pagination enabled</span>
+            )}
+          </div>
+        </div>
+
         {selectedPapers.length > 0 && (
           <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-700">
             <div className="flex items-center justify-between">
@@ -210,6 +255,21 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
           </div>
         )}
       </div>
+
+      {/* Results Count */}
+      {papers.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              📊 Found {papers.length} research papers
+            </span>
+            <span className="text-xs text-blue-600 dark:text-blue-400">
+              {maxPapers === 1000 && papers.length === 1000 && ' (Maximum reached - try pagination for more)'}
+              {maxPapers > 1000 && usePagination && ` (Showing ${papers.length} of ${maxPapers} requested)`}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {papers.length === 0 && !loading ? (

@@ -2,6 +2,13 @@ import React from 'react'
 import { Repo } from '../types'
 
 export default function RepoCard({ repo }: { repo: Repo }) {
+  // Shorten description to fit more content
+  const shortDescription = repo.description 
+    ? repo.description.length > 80 
+      ? repo.description.substring(0, 80) + '...' 
+      : repo.description
+    : 'No description'
+  
   return (
     <div className="p-3 rounded-lg bg-white dark:bg-white/5 border-2 border-cyan-200 dark:border-white/10 hover:shadow-md dark:hover:bg-white/10 transition">
       <a 
@@ -12,7 +19,7 @@ export default function RepoCard({ repo }: { repo: Repo }) {
       >
         {repo.full_name}
       </a>
-      <p className="text-sm text-slate-700 dark:text-white/70 mt-1">{repo.description || 'No description'}</p>
+      <p className="text-sm text-slate-700 dark:text-white/70 mt-1">{shortDescription}</p>
       <div className="text-xs mt-2 text-slate-600 dark:text-white/50 flex gap-3 flex-wrap">
         <span>⭐ {repo.stargazers_count || 0} stars</span>
         <span>💻 {repo.language || 'Unknown'}</span>

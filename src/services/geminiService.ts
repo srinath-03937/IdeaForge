@@ -86,7 +86,7 @@ export async function callGemini(prompt:string, contextRepos:any[] = []): Promis
   try {
     // Step 1: Search for real patents using Gemini
     console.log('Searching patents for:', prompt)
-    const patents = await searchPatents(prompt, 8)
+    const patents = await searchPatents(prompt, 15)
     console.log('Found patents:', patents.length)
     
     // Step 2: Generate analysis using Gemini with patent context

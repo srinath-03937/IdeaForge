@@ -4,7 +4,7 @@ import { useFirestore } from '../hooks/useFirestore'
 import { useForge } from '../hooks/useForge'
 
 export default function Sidebar(){
-  const { history } = useFirestore()
+  const { history, deleteForge } = useFirestore()
   const { currentForge, loadForgeFromHistory } = useForge()
   
   const handleLoadForge = (forge: any) => {
@@ -14,8 +14,7 @@ export default function Sidebar(){
   const handleDeleteForge = async (e: React.MouseEvent, forgeId: string) => {
     e.stopPropagation()
     if (confirm('Are you sure you want to delete this forge?')) {
-      // await deleteForge(forgeId) // Function not available in current useFirestore
-      console.log('Delete functionality not implemented')
+      await deleteForge(forgeId)
     }
   }
 

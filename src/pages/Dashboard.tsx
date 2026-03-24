@@ -6,6 +6,11 @@ import ResultTabs from '../components/ResultTabs'
 import ExportButton from '../components/ExportButton'
 import ArXivDeepLinker from '../components/ArXivDeepLinker'
 import PatentSimilarityHeatmap from '../components/PatentSimilarityHeatmap'
+import CostEstimator from '../components/CostEstimator'
+import DatasetRecommendations from '../components/DatasetRecommendations'
+import VenueRecommendations from '../components/VenueRecommendations'
+import MethodologyRecommendations from '../components/MethodologyRecommendations'
+import TopicTrends from '../components/TopicTrends'
 import { useForge } from '../hooks/useForge'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
@@ -17,7 +22,7 @@ export default function Dashboard() {
   const [imageFile, setImageFile] = React.useState<File | null>(null)
   const [error, setError] = React.useState('')
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
-  const [activeModule, setActiveModule] = React.useState<'forge' | 'arxiv' | 'patents' | 'hub'>('forge')
+  const [activeModule, setActiveModule] = React.useState<'forge' | 'arxiv' | 'patents' | 'datasets' | 'venues' | 'methodologies' | 'trends' | 'hub'>('forge')
 
   // Auto-switch to ArXiv module when forge completes
   React.useEffect(() => {
@@ -35,6 +40,14 @@ export default function Dashboard() {
 
   const handleIdeaChange = (text: string) => {
     setIdea(text)
+    
+    // Check word count and set error if less than 50 words
+    const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length
+    if (wordCount > 0 && wordCount < 50) {
+      setError(`Idea description must be at least 50 words. Current count: ${wordCount} words. Please provide more details about your research idea.`)
+    } else {
+      setError('')
+    }
   }
 
   const handleStartForge = async () => {
@@ -152,9 +165,36 @@ Based on the analysis of the selected research papers, the following key finding
       return
     }
     try {
-      const similarityScore = currentForge.result.patents?.length || 0
-      await calculatePatentSimilarity(currentForge.id, similarityScore)
-      console.log('Patent similarity calculated successfully')
+      // Calculate proper similarity percentage based on patent analysis
+      const patents = currentForge.result.patents
+      const idea = currentForge.idea
+      
+      // Calculate average similarity across all patents
+      let totalSimilarity = 0
+      let validPatents = 0
+      
+      patents.forEach((patent: any) => {
+        if (patent && patent.title) {
+          // Simple similarity calculation based on keyword overlap
+          const ideaKeywords = idea.toLowerCase().split(' ').filter(word => word.length > 3)
+          const patentText = `${patent.title || ''} ${patent.abstract || ''}`.toLowerCase()
+          const patentKeywords = patentText.split(' ').filter(word => word.length > 3)
+          
+          const commonKeywords = ideaKeywords.filter(keyword => 
+            patentKeywords.some(pKeyword => pKeyword.includes(keyword) || keyword.includes(pKeyword))
+          )
+          
+          const similarity = (commonKeywords.length / Math.max(ideaKeywords.length, 1)) * 100
+          totalSimilarity += Math.min(100, similarity)
+          validPatents++
+        }
+      })
+      
+      const averageSimilarity = validPatents > 0 ? totalSimilarity / validPatents : 0
+      const finalSimilarityScore = Math.round(averageSimilarity)
+      
+      await calculatePatentSimilarity(currentForge.id, finalSimilarityScore)
+      console.log('Patent similarity calculated successfully:', finalSimilarityScore + '%')
     } catch (err) {
       console.error('Failed to calculate similarity:', err)
       alert('Failed to calculate patent similarity')
@@ -224,6 +264,46 @@ Based on the analysis of the selected research papers, the following key finding
             >
               🎯 Patent Analysis
             </button>
+            <button
+              onClick={() => setActiveModule('datasets')}
+              className={`px-4 py-2 rounded-md font-medium transition ${
+                activeModule === 'datasets' 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
+              }`}
+            >
+              📊 Datasets
+            </button>
+            <button
+              onClick={() => setActiveModule('venues')}
+              className={`px-4 py-2 rounded-md font-medium transition ${
+                activeModule === 'venues' 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
+              }`}
+            >
+              🎯 Venues
+            </button>
+            <button
+              onClick={() => setActiveModule('methodologies')}
+              className={`px-4 py-2 rounded-md font-medium transition ${
+                activeModule === 'methodologies' 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
+              }`}
+            >
+              🔬 Methods
+            </button>
+            <button
+              onClick={() => setActiveModule('trends')}
+              className={`px-4 py-2 rounded-md font-medium transition ${
+                activeModule === 'trends' 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
+              }`}
+            >
+              📈 Trends
+            </button>
           </div>
         </div>
 
@@ -237,7 +317,7 @@ Based on the analysis of the selected research papers, the following key finding
               </h2>
               <textarea
                 className="w-full p-4 rounded-lg card text-slate-900 dark:text-white bg-slate-50 dark:bg-black/30 border-3 border-emerald-300 dark:border-emerald-500/40 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition font-medium resize-none"
-                placeholder="Describe your idea..."
+                placeholder="Describe your idea in detail (minimum 50 words)..."
                 rows={5}
                 value={currentForge.idea}
                 onChange={(e) => handleIdeaChange(e.target.value)}
@@ -278,7 +358,58 @@ Based on the analysis of the selected research papers, the following key finding
             <section className="flex-1">
               <ResultTabs result={currentForge?.result} />
             </section>
+
+            {/* Cost Estimation Section */}
+            {currentForge?.idea && (
+              <section className="mb-6">
+                <CostEstimator 
+                  idea={currentForge.idea}
+                  forgeResult={currentForge.result}
+                  selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}
+                />
+              </section>
+            )}
           </>
+        )}
+
+        {activeModule === 'datasets' && (
+          <section className="flex-1">
+            <DatasetRecommendations 
+              researchIdea={currentForge?.idea || ''}
+              forgeResult={currentForge?.result}
+              selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}
+            />
+          </section>
+        )}
+
+        {activeModule === 'venues' && (
+          <section className="flex-1">
+            <VenueRecommendations 
+              researchIdea={currentForge?.idea || ''}
+              forgeResult={currentForge?.result}
+              selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}
+            />
+          </section>
+        )}
+
+        {activeModule === 'methodologies' && (
+          <section className="flex-1">
+            <MethodologyRecommendations 
+              researchIdea={currentForge?.idea || ''}
+              forgeResult={currentForge?.result}
+              selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}
+            />
+          </section>
+        )}
+
+        {activeModule === 'trends' && (
+          <section className="flex-1">
+            <TopicTrends 
+              researchIdea={currentForge?.idea || ''}
+              forgeResult={currentForge?.result}
+              selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}
+            />
+          </section>
         )}
 
         {activeModule === 'arxiv' && (

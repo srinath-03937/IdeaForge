@@ -63,7 +63,7 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
     try {
       // Step 1: GitHub search (grounded data)
       console.log('Step 1: Searching GitHub...')
-      const repos = await searchGitHubRepos(currentForge.idea, 10)
+      const repos = await searchGitHubRepos(currentForge.idea, 20)
       console.log('GitHub repos returned:', repos)
 
       // Step 2: Gemini call with context
@@ -71,7 +71,13 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
       const result = await callGemini(currentForge.idea, repos)
       console.log('Gemini result:', result)
 
-      const updated = { ...currentForge, result, loading: false }
+      // Add all fetched repos to the result for display
+      const resultWithAllRepos = {
+        ...result,
+        allRepos: repos // Include all fetched repos
+      }
+
+      const updated = { ...currentForge, result: resultWithAllRepos, loading: false }
       setCurrentForge(updated)
 
       // Step 3: Trigger automatic paper search for Module 2

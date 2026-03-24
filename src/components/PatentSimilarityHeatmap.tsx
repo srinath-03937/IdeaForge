@@ -92,15 +92,24 @@ export default function PatentSimilarityHeatmap({ similarityScore, patents, idea
     const ideaKeywords = extractKeywords(idea.toLowerCase())
     const patentText = `${patent.title || ''} ${patent.abstract || ''}`.toLowerCase()
     
-    // Calculate keyword overlap
+    // Calculate keyword overlap with more weight on exact matches
     const patentKeywords = extractKeywords(patentText)
     const commonKeywords = ideaKeywords.filter(keyword => patentKeywords.includes(keyword))
     
-    // Calculate similarity score (0-100)
-    const keywordSimilarity = (commonKeywords.length / Math.max(ideaKeywords.length, patentKeywords.length)) * 100
+    // Calculate similarity score (0-100) with enhanced weighting
+    const keywordSimilarity = ideaKeywords.length > 0 
+      ? (commonKeywords.length / ideaKeywords.length) * 100 
+      : 0
+    
     const conceptualSimilarity = calculateConceptualSimilarity(idea, patentText)
     
-    return Math.min(100, Math.round((keywordSimilarity * 0.6) + (conceptualSimilarity * 0.4)))
+    // Weight more heavily towards keyword similarity for consistency with verdict
+    const finalSimilarity = Math.min(100, Math.round((keywordSimilarity * 0.8) + (conceptualSimilarity * 0.2)))
+    
+    // Ensure consistency with verdict thresholds
+    // High similarity (≥70%) should clearly indicate high risk
+    // Low similarity (<40%) should clearly indicate low risk
+    return finalSimilarity
   }
 
   // Extract keywords from text

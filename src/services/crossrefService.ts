@@ -17,17 +17,24 @@ export interface ResearchPaper {
   url?: string
 }
 
-export async function searchCrossref(query: string, maxResults: number = 10): Promise<ResearchPaper[]> {
+export async function searchCrossref(query: string, maxResults: number = 1000, usePagination: boolean = false): Promise<ResearchPaper[]> {
   if (!query || query.trim().length === 0) {
     console.warn('Empty query provided to searchCrossref, using fallback')
     return getFallbackPapers(query)
   }
 
-  const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${maxResults}&select=title,abstract,author,published,DOI,container-title,publisher,type,URL,member,relation&sort=relevance&order=desc`
-  
-  console.log('Searching Crossref with URL:', url)
-  
+  console.log('Searching Crossref for:', query, 'maxResults:', maxResults, 'usePagination:', usePagination)
+
   try {
+    // If pagination is requested and we want more than 1000 papers, use cursor-based pagination
+    if (usePagination && maxResults > 1000) {
+      return await searchCrossrefWithPagination(query, maxResults)
+    }
+
+    const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${Math.min(maxResults, 1000)}&select=title,abstract,author,published,DOI,container-title,publisher,type,URL,member,relation&sort=relevance&order=desc`
+    
+    console.log('Searching Crossref with URL:', url)
+    
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
@@ -165,6 +172,171 @@ export async function searchCrossref(query: string, maxResults: number = 10): Pr
     console.error('Error searching Crossref:', error)
     return getFallbackPapers(query)
   }
+}
+
+// New function for cursor-based pagination
+async function searchCrossrefWithPagination(query: string, maxResults: number): Promise<ResearchPaper[]> {
+  const allPapers: ResearchPaper[] = []
+  let cursor = "*"
+  let retrievedCount = 0
+  const pageSize = 1000 // Maximum per request
+  
+  console.log(`Starting paginated search for ${maxResults} papers`)
+  
+  while (cursor && retrievedCount < maxResults) {
+    try {
+      const remainingResults = Math.min(pageSize, maxResults - retrievedCount)
+      const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${remainingResults}&cursor=${cursor}&select=title,abstract,author,published,DOI,container-title,publisher,type,URL,member,relation&sort=relevance&order=desc`
+      
+      console.log(`Fetching page: ${Math.floor(retrievedCount / pageSize) + 1}, remaining: ${remainingResults}`)
+      
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'IdeaForge-Vision/1.0 (mailto:contact@ideaforge.com)'
+        }
+      })
+
+      if (!response.ok) {
+        console.warn('Crossref API request failed during pagination:', response.status, response.statusText)
+        break
+      }
+
+      const data = await response.json()
+      
+      if (!data.message || !data.message.items || data.message.items.length === 0) {
+        console.log('No more papers found')
+        break
+      }
+
+      // Parse papers for this page
+      const pagePapers: ResearchPaper[] = data.message.items.map((item: any, index: number) => {
+        try {
+          // Extract authors
+          const authors = item.author?.map((author: any) => {
+            const name = author.given ? `${author.given} ${author.family}` : author.family || 'Unknown'
+            return name
+          }) || []
+
+          // Extract title (handle array or string)
+          const title = Array.isArray(item.title) ? item.title[0] : item.title || 'Untitled'
+
+          // Extract publication date
+          let published = ''
+          if (item.published?.['date-parts']?.length > 0) {
+            try {
+              const dateParts = item.published['date-parts'][0]
+              if (dateParts.length >= 3 && dateParts[0] && dateParts[1] && dateParts[2]) {
+                const year = dateParts[0]
+                const month = dateParts[1] - 1
+                const day = dateParts[2]
+                const date = new Date(year, month, day)
+                
+                if (!isNaN(date.getTime()) && year >= 1900 && year <= 2100) {
+                  published = date.toISOString()
+                } else {
+                  published = new Date().toISOString()
+                }
+              } else {
+                published = new Date().toISOString()
+              }
+            } catch (dateError) {
+              published = new Date().toISOString()
+            }
+          } else {
+            published = new Date().toISOString()
+          }
+
+          // Extract DOI
+          const doi = item.DOI || ''
+
+          // Extract journal/container title
+          const journal = Array.isArray(item['container-title']) 
+            ? item['container-title'][0] 
+            : item['container-title'] || ''
+
+          // Extract publisher
+          const publisher = item.publisher || ''
+
+          // Extract type
+          const type = item.type || 'journal-article'
+
+          // Extract URL
+          const url = item.URL || ''
+
+          // Try to find PDF URL from relations
+          let pdfUrl = ''
+          if (item.relation?.['cited-by']?.length > 0) {
+            const pdfRelation = item.relation['cited-by'].find((rel: any) => 
+              rel['content-type'] === 'application/pdf' || rel.URL?.includes('.pdf')
+            )
+            if (pdfRelation) {
+              pdfUrl = pdfRelation.URL
+            }
+          }
+
+          if (!pdfUrl && doi) {
+            pdfUrl = `https://doi.org/${doi}`
+          }
+
+          return {
+            id: doi || `crossref-${retrievedCount + index}`,
+            title,
+            authors,
+            summary: item.abstract || '',
+            abstract: item.abstract || '',
+            pdfUrl,
+            arxivUrl: url,
+            published,
+            updated: published,
+            categories: [type],
+            doi,
+            comment: `Published in ${journal || 'Unknown journal'}`,
+            journal,
+            publisher,
+            type,
+            url
+          }
+        } catch (itemError) {
+          console.warn('Error parsing Crossref item:', itemError, 'using fallback')
+          return {
+            id: `crossref-error-${retrievedCount + index}`,
+            title: 'Error parsing paper data',
+            authors: ['Unknown'],
+            summary: 'This paper could not be parsed correctly from Crossref data.',
+            published: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            categories: ['error'],
+            comment: 'Parsing error occurred'
+          }
+        }
+      })
+
+      allPapers.push(...pagePapers)
+      retrievedCount += pagePapers.length
+
+      // Check if we got less results than requested (indicates last page)
+      if (pagePapers.length < remainingResults) {
+        console.log('Reached last page of results')
+        break
+      }
+
+      // Get next cursor for pagination
+      cursor = data.message.nextCursor || null
+      
+      // Add a small delay to avoid rate limiting
+      if (cursor && retrievedCount < maxResults) {
+        await new Promise(resolve => setTimeout(resolve, 100)) // 100ms delay
+      }
+      
+    } catch (error) {
+      console.error('Error during pagination:', error)
+      break
+    }
+  }
+
+  console.log(`Paginated search complete: retrieved ${allPapers.length} papers out of requested ${maxResults}`)
+  return allPapers
 }
 
 function getFallbackPapers(query: string): ResearchPaper[] {

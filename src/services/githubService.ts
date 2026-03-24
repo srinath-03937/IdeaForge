@@ -9,7 +9,7 @@ const FALLBACK_REPOS: Repo[] = [
 export async function searchGitHubRepos(query: string, limit?: number): Promise<Repo[]> {
   if (!query || query.trim().length === 0) {
     console.warn('Empty query provided to searchGitHubRepos, using fallback')
-    return FALLBACK_REPOS.slice(0, limit || 10)
+    return FALLBACK_REPOS.slice(0, limit || 20)
   }
 
   const token = (import.meta as any).env?.VITE_GITHUB_TOKEN || ''
@@ -23,21 +23,21 @@ export async function searchGitHubRepos(query: string, limit?: number): Promise<
   }
 
   try {
-    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${limit || 10}`
+    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=${limit || 20}`
     console.log('Searching GitHub with URL:', url)
     
     const response = await fetch(url, { headers })
     
     if (!response.ok) {
       console.warn('GitHub API request failed:', response.status, response.statusText)
-      return FALLBACK_REPOS.slice(0, limit || 10)
+      return FALLBACK_REPOS.slice(0, limit || 20)
     }
 
     const data = await response.json()
     
     if (!data.items || data.items.length === 0) {
       console.warn('No repositories found, using fallback')
-      return FALLBACK_REPOS.slice(0, limit || 10)
+      return FALLBACK_REPOS.slice(0, limit || 20)
     }
 
     const repos: Repo[] = data.items.map((item: any) => ({
@@ -55,10 +55,10 @@ export async function searchGitHubRepos(query: string, limit?: number): Promise<
     }))
 
     console.log(`Found ${repos.length} repositories for query: ${query}`)
-    return repos.slice(0, limit || 10)
+    return repos.slice(0, limit || 20)
 
   } catch (error) {
     console.error('Error searching GitHub repos:', error)
-    return FALLBACK_REPOS.slice(0, limit || 10)
+    return FALLBACK_REPOS.slice(0, limit || 20)
   }
 }

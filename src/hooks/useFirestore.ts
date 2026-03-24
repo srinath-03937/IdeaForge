@@ -1,5 +1,5 @@
 import React from 'react'
-import { collection, query, getDocs, doc, Timestamp, updateDoc, setDoc } from 'firebase/firestore'
+import { collection, query, getDocs, doc, Timestamp, updateDoc, setDoc, deleteDoc } from 'firebase/firestore'
 import { getFirebaseFirestore, appId } from '../firebase/config'
 
 export interface ForgeDoc {
@@ -119,6 +119,23 @@ export function useFirestore(){
     }
   }
 
+  const deleteForge = async (forgeId: string) => {
+    try {
+      const fs = getFirebaseFirestore()
+      if (!fs) return
+      
+      const path = `history/${forgeId}`
+      const forgeRef = doc(fs, path)
+      await deleteDoc(forgeRef)
+      
+      // Update local history to remove the deleted forge
+      setHistory(prev => prev.filter(forge => forge.id !== forgeId))
+      console.log('Forge deleted successfully:', forgeId)
+    } catch (err) {
+      console.warn('Failed to delete forge (Firebase permissions may be required):', err)
+    }
+  }
+
   React.useEffect(() => {
     loadHistory().catch(err => console.error('Firestore load error:', err))
   }, [])
@@ -129,6 +146,7 @@ export function useFirestore(){
     pinPaperToForge,
     synthesizeFindings,
     calculatePatentSimilarity,
-    updateLifecycleTag
+    updateLifecycleTag,
+    deleteForge
   }
 }
