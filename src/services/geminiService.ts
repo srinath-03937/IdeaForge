@@ -133,10 +133,10 @@ Respond with ONLY a valid JSON object (no markdown code blocks) with these exact
       body: JSON.stringify(payload) 
     }
     
-    console.log('Calling Gemini API with patent context...', { url, hasKey: !!apiKey })
+    console.log('Calling Gemini API with patent context...', { url, hasKey: !!apiKey, keyLength: apiKey?.length })
     const res = await backoffFetch(url, opts)
     const json = await res.json()
-    console.log('Gemini response:', json)
+    console.log('Gemini response received:', { status: res.status, hasCandidates: !!json.candidates, candidateCount: json.candidates?.length || 0 })
     
     if (json.error) {
       console.error('Gemini API error:', json.error)
@@ -179,10 +179,11 @@ Respond with ONLY a valid JSON object (no markdown code blocks) with these exact
         
         // Use real patents in the response
         const responsePatents = parsed.patents && parsed.patents.length > 0 ? parsed.patents : patents
+        console.log('Response patents count:', responsePatents?.length || 0)
         
         // Ensure patents and validatedRepos are properly structured
         const patentsArray = responsePatents.map((p: any) => 
-          typeof p === 'string' ? { title: p, abstract: '' } : p
+          typeof p === 'string' ? { title: p, abstract: '', id: `patent-${Math.random()}` } : { ...p, id: p.id || `patent-${Math.random()}` }
         ).filter((p: any) => p && p.title)
         
         const validatedReposArray = (parsed.validatedRepos || []).map((r: any) => 
@@ -217,11 +218,12 @@ Respond with ONLY a valid JSON object (no markdown code blocks) with these exact
       const fallbackPatents = patents.map((p, i) => ({
         title: p.title,
         abstract: p.abstract,
-        id: p.id,
+        id: p.id || `patent-${i}`,
         inventors: p.inventors,
         filingDate: p.filingDate,
         technologies: p.technologies
       }))
+      console.log('Fallback patents count:', fallbackPatents.length)
       
       const mermaidDiagram = generateDynamicDiagram(prompt, contextRepos, fallbackPatents)
       console.log('Fallback mermaid diagram generated:', mermaidDiagram.substring(0, 200))

@@ -8,10 +8,12 @@ import ArXivDeepLinker from '../components/ArXivDeepLinker'
 import PatentSimilarityHeatmap from '../components/PatentSimilarityHeatmap'
 import { useForge } from '../hooks/useForge'
 import { useFirestore } from '../hooks/useFirestore'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Dashboard() {
   const { currentForge, startForge, setIdea, shouldSearchPapers, clearPaperSearchTrigger, updateSynthesizedFindings } = useForge()
   const { history, pinPaperToForge, synthesizeFindings, calculatePatentSimilarity, updateLifecycleTag } = useFirestore()
+  const { user, signInWithEmail, signUpWithEmail, signOut } = useAuth()
   const [imageFile, setImageFile] = React.useState<File | null>(null)
   const [error, setError] = React.useState('')
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
@@ -67,8 +69,39 @@ export default function Dashboard() {
       return 'No papers selected for synthesis'
     }
     
-    // Generate synthesis text from papers
-    const synthesisText = `## Synthesized Findings from ${papers.length} Papers
+    try {
+      console.log('Using Groq API for dynamic synthesis of', papers.length, 'papers')
+      
+      // Import Groq service dynamically
+      const { synthesizePapers } = await import('../services/groqService')
+      
+      const synthesisRequest = {
+        papers: papers.map(paper => ({
+          title: paper.title,
+          authors: paper.authors || [],
+          summary: paper.summary || paper.abstract || '',
+          published: paper.published,
+          doi: paper.doi,
+          journal: paper.journal
+        })),
+        forgeIdea: currentForge.idea
+      }
+      
+      const synthesisResult = await synthesizePapers(synthesisRequest)
+      
+      // Store in Firebase
+      const result = await synthesizeFindings(currentForge.id, synthesisResult)
+      console.log('Dynamic synthesis completed successfully')
+      
+      // Also update local state for immediate display
+      updateSynthesizedFindings(synthesisResult)
+      return synthesisResult
+      
+    } catch (groqError) {
+      console.warn('Groq API synthesis failed, using fallback:', groqError)
+      
+      // Fallback to original synthesis method
+      const synthesisText = `## Synthesized Findings from ${papers.length} Papers
 
 ### Key Papers Analyzed:
 ${papers.map((paper, index) => `
@@ -99,15 +132,17 @@ Based on the analysis of the selected research papers, the following key finding
 3. Iterate based on testing and user feedback
 4. Consider publication of novel contributions to the field`
 
-    try {
-      const result = await synthesizeFindings(currentForge.id, synthesisText)
-      console.log('Findings synthesized successfully')
-      // Also update local state for immediate display
-      updateSynthesizedFindings(synthesisText)
-      return synthesisText
-    } catch (err) {
-      console.error('Failed to synthesize findings:', err)
-      return synthesisText // Return the generated text even if Firebase fails
+      try {
+        const result = await synthesizeFindings(currentForge.id, synthesisText)
+        console.log('Fallback synthesis completed')
+        // Also update local state for immediate display
+        updateSynthesizedFindings(synthesisText)
+        return synthesisText
+      } catch (firebaseError) {
+        console.warn('Firebase update failed:', firebaseError)
+        updateSynthesizedFindings(synthesisText)
+        return synthesisText
+      }
     }
   }
 
@@ -117,7 +152,8 @@ Based on the analysis of the selected research papers, the following key finding
       return
     }
     try {
-      await calculatePatentSimilarity(currentForge.id, currentForge.result.patents)
+      const similarityScore = currentForge.result.patents?.length || 0
+      await calculatePatentSimilarity(currentForge.id, similarityScore)
       console.log('Patent similarity calculated successfully')
     } catch (err) {
       console.error('Failed to calculate similarity:', err)
@@ -187,16 +223,6 @@ Based on the analysis of the selected research papers, the following key finding
               }`}
             >
               🎯 Patent Analysis
-            </button>
-            <button
-              onClick={() => setActiveModule('hub')}
-              className={`px-4 py-2 rounded-md font-medium transition ${
-                activeModule === 'hub' 
-                  ? 'bg-emerald-500 text-white' 
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
-              }`}
-            >
-              📦 Project Hub
             </button>
           </div>
         </div>
@@ -292,46 +318,6 @@ Based on the analysis of the selected research papers, the following key finding
                 </div>
               </div>
             )}
-          </section>
-        )}
-
-        {activeModule === 'hub' && (
-          <section className="flex-1">
-            <div className="text-center py-12">
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">📦 Project Hub</h3>
-              <p className="text-slate-600 dark:text-white/60 mb-6">
-                Click on any project in the sidebar to open the detailed Project Hub
-              </p>
-              <div className="max-w-md mx-auto">
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border-2 border-slate-200 dark:border-white/10 shadow-lg">
-                  <div className="text-6xl mb-4">📋</div>
-                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                    Project Management
-                  </h4>
-                  <p className="text-slate-600 dark:text-white/60">
-                    Use the sidebar to select and manage your projects. Click on any project to see detailed options including:
-                  </p>
-                  <ul className="text-left text-slate-600 dark:text-white/60 space-y-2 mt-4">
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                      <span>Export multiple projects as ZIP archive</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span>Filter projects by lifecycle status</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                      <span>Update project tags</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                      <span>Delete unwanted projects</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
           </section>
         )}
       </div>

@@ -1,7 +1,6 @@
 import React from 'react'
 import { Repo } from '../types'
 import RepoCard from './RepoCard'
-import MermaidDiagram from './MermaidDiagram'
 
 interface PatentCardProps {
   title: string
@@ -20,7 +19,10 @@ function PatentCard({ title, abstract }: PatentCardProps) {
 export default function ResultTabs({ result }: { result?: any }) {
   if (!result) return <div className="mt-4 text-sm text-slate-600 dark:text-white/60">No results yet.</div>
   
-  const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({})
+  const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
+    repos: true,
+    patents: true
+  })
   
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -129,26 +131,6 @@ export default function ResultTabs({ result }: { result?: any }) {
               ))
             ) : (
               <div className="text-sm text-slate-600 dark:text-white/60">No patents found</div>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Collapsible Architecture Section */}
-      <section className="border-2 border-purple-300 dark:border-white/10 rounded-lg overflow-hidden shadow-sm">
-        <button
-          onClick={() => toggleSection('arch')}
-          className="w-full p-3 sm:p-4 bg-purple-50 dark:bg-black/40 hover:bg-purple-100 dark:hover:bg-black/60 flex items-center justify-between font-semibold text-slate-900 dark:text-white transition"
-        >
-          <span className="text-sm sm:text-base">🏗️ Architecture Diagram</span>
-          <span className="text-lg">{expandedSections['arch'] ? '▼' : '▶'}</span>
-        </button>
-        {expandedSections['arch'] && (
-          <div className="p-3 sm:p-4 bg-purple-50 dark:bg-black/20 border-t-2 border-purple-200 dark:border-white/10">
-            {result.mermaid ? (
-              <MermaidDiagram code={result.mermaid} />
-            ) : (
-              <div className="text-sm text-slate-600 dark:text-white/60 p-4">No architecture diagram available</div>
             )}
           </div>
         )}

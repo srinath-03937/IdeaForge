@@ -1,6 +1,6 @@
 import React from 'react'
 import { doc, setDoc, Timestamp } from 'firebase/firestore'
-import { getFirebaseFirestore, appId } from '../services/firebaseConfig'
+import { getFirebaseFirestore, appId } from '../firebase/config'
 import { searchGitHubRepos } from '../services/githubService'
 import { callGemini } from '../services/geminiService'
 import { AnalysisResult } from '../types'
@@ -63,7 +63,7 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
     try {
       // Step 1: GitHub search (grounded data)
       console.log('Step 1: Searching GitHub...')
-      const repos = await searchGitHubRepos(currentForge.idea, 6)
+      const repos = await searchGitHubRepos(currentForge.idea, 10)
       console.log('GitHub repos returned:', repos)
 
       // Step 2: Gemini call with context
@@ -78,21 +78,23 @@ export function ForgeProvider({ children }: { children: React.ReactNode }) {
       console.log('Step 3: Triggering automatic paper search...')
       setShouldSearchPapers(true)
 
-      // Save to Firestore
+      // Save to Firestore history collection
       const fs = getFirebaseFirestore()
       if (!fs) {
         console.error('Firestore not initialized')
         return
       }
       const forgeId = updated.id === 'new' ? Date.now().toString() : updated.id
-      const path = `artifacts/${appId()}/forges/${forgeId}`
-      console.log('Saving to Firestore path:', path)
-      await setDoc(doc(fs, path), {
+      const historyPath = `history/${forgeId}`
+      console.log('Saving to Firestore path:', historyPath)
+      await setDoc(doc(fs, historyPath), {
+        id: forgeId,
         idea: updated.idea,
         result: updated.result,
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       })
-      console.log('Forge saved successfully!')
+      console.log('Forge saved successfully to history!')
     } catch (err) {
       console.error('Forge error:', err)
       setCurrentForge((f: CurrentForge) => ({ ...f, loading: false }))

@@ -15,7 +15,7 @@ const lifecycleTags = [
 ] as const
 
 export default function ProjectHub({ onLoadForge, onCreateNewForge }: ProjectHubProps) {
-  const { history, deleteForge, updateLifecycleTag } = useFirestore()
+  const { history, updateLifecycleTag } = useFirestore()
   const [selectedForges, setSelectedForges] = React.useState<string[]>([])
   const [exporting, setExporting] = React.useState(false)
   const [filterTag, setFilterTag] = React.useState<string | null>(null)
@@ -292,7 +292,8 @@ ${project.patentSimilarityScore?.toFixed(1) || 'N/A'}%
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        deleteForge(forge.id)
+                        // deleteForge(forge.id) // Function not available in current useFirestore
+                        console.log('Delete functionality not implemented')
                       }}
                       className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
                       title="Delete Project"

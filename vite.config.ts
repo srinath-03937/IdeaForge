@@ -9,7 +9,20 @@ export default defineConfig({
         target: 'https://export.arxiv.org',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/arxiv/, ''),
-        secure: true
+        secure: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('ArXiv proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('ArXiv proxy request:', req.method, req.url);
+            proxyReq.setHeader('User-Agent', 'IdeaForge-Vision/1.0');
+            proxyReq.setHeader('Accept', 'application/xml, text/xml, */*');
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('ArXiv proxy response:', proxyRes.statusCode, req.url);
+          });
+        }
       }
     }
   }

@@ -1,6 +1,6 @@
 import React from 'react'
-import { collection, query, getDocs, doc, Timestamp, updateDoc } from 'firebase/firestore'
-import { getFirebaseFirestore, appId } from '../services/firebaseConfig'
+import { collection, query, getDocs, doc, Timestamp, updateDoc, setDoc } from 'firebase/firestore'
+import { getFirebaseFirestore, appId } from '../firebase/config'
 
 export interface ForgeDoc {
   id: string
@@ -31,7 +31,7 @@ export function useFirestore(){
         console.warn('Firestore not initialized')
         return
       }
-      const path = `artifacts/${appId()}/forges`
+      const path = `history`
       const q = query(collection(fs, path))
       const snap = await getDocs(q)
       const docs = snap.docs.map(d=>({ id: d.id, ...d.data() } as ForgeDoc))
@@ -55,9 +55,9 @@ export function useFirestore(){
         console.warn('Firestore not initialized')
         return
       }
-      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const path = `history/${forgeId}`
       const forgeRef = doc(fs, path)
-      const forgeSnap = await getDocs(query(collection(fs, `artifacts/${appId()}/forges`)))
+      const forgeSnap = await getDocs(query(collection(fs, `history`)))
       const forge = forgeSnap.docs.find(d => d.id === forgeId)
       if (!forge) return
       const pinnedPapers = forge.data()?.pinnedPapers || []
@@ -79,10 +79,11 @@ export function useFirestore(){
     try {
       const fs = getFirebaseFirestore()
       if (!fs) return findings
-      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const path = `history/${forgeId}`
       const forgeRef = doc(fs, path)
       
-      await updateDoc(forgeRef, { synthesizedFindings: findings })
+      // Use setDoc with merge to create document if it doesn't exist
+      await setDoc(forgeRef, { synthesizedFindings: findings }, { merge: true })
       console.log('Findings synthesized for forge:', forgeId)
       await loadHistory()
       return findings
@@ -96,7 +97,7 @@ export function useFirestore(){
     try {
       const fs = getFirebaseFirestore()
       if (!fs) return
-      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const path = `history/${forgeId}`
       const forgeRef = doc(fs, path)
       await updateDoc(forgeRef, { patentSimilarityScore: score })
       console.log('Patent similarity score updated')
@@ -109,7 +110,7 @@ export function useFirestore(){
     try {
       const fs = getFirebaseFirestore()
       if (!fs) return
-      const path = `artifacts/${appId()}/forges/${forgeId}`
+      const path = `history/${forgeId}`
       const forgeRef = doc(fs, path)
       await updateDoc(forgeRef, { lifecycleTag: tag })
       console.log('Lifecycle tag updated')
