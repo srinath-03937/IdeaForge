@@ -1,18 +1,6 @@
 import React from 'react'
-
-interface Dataset {
-  id: string
-  name: string
-  description: string
-  source: 'huggingface' | 'kaggle' | 'uci' | 'government' | 'domain-specific' | 'pubmed' | 'nasa' | 'noaa' | 'worldbank' | 'imdb' | 'papers-with-code'
-  url: string
-  size: string
-  format: string
-  downloads: number
-  lastUpdated: string
-  tags: string[]
-  relevanceScore: number
-}
+import { searchAllDatasets } from '../services/datasetService'
+import { Dataset } from '../types'
 
 interface DatasetRecommendationsProps {
   researchIdea: string
@@ -24,13 +12,16 @@ export default function DatasetRecommendations({ researchIdea, forgeResult, sele
   const [datasets, setDatasets] = React.useState<Dataset[]>([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [autoSearched, setAutoSearched] = React.useState(false)
 
   React.useEffect(() => {
     if (researchIdea && researchIdea.trim()) {
       fetchDatasets(researchIdea)
+      setAutoSearched(true)
     } else {
       // Don't show datasets when no research idea
       setDatasets([])
+      setAutoSearched(false)
     }
   }, [researchIdea])
 
@@ -39,9 +30,10 @@ export default function DatasetRecommendations({ researchIdea, forgeResult, sele
     setError('')
     
     try {
-      // Simulate API call to fetch relevant datasets
-      const relevantDatasets = await getRelevantDatasets(idea)
+      // Use real API service to fetch relevant datasets
+      const relevantDatasets = await searchAllDatasets(idea, 20)
       setDatasets(relevantDatasets)
+      console.log(`Fetched ${relevantDatasets.length} real datasets for: ${idea}`)
     } catch (err) {
       console.error('Error fetching datasets:', err)
       setError('Failed to fetch datasets')
@@ -684,11 +676,26 @@ export default function DatasetRecommendations({ researchIdea, forgeResult, sele
         ))}
       </div>
       
-      {datasets.length === 0 && !loading && (
+      {datasets.length === 0 && !loading && autoSearched && (
         <div className="text-center py-8 text-slate-500 dark:text-slate-400">
           <span className="text-4xl mb-4 block">📊</span>
-          <p>Enter a research idea in the Forge module to see relevant datasets.</p>
-          <p className="text-sm mt-2">Datasets will be matched based on your research topic and keywords.</p>
+          <p className="mb-2">No relevant datasets found for your research idea</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            Try using different keywords or broadening your search terms
+          </p>
+          <p className="text-xs text-slate-300 dark:text-slate-600 mt-4">
+            Note: Only shows datasets from academic databases. No fake or placeholder datasets are displayed.
+          </p>
+        </div>
+      )}
+      
+      {datasets.length === 0 && loading && autoSearched && (
+        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="mb-2">🔍 Searching datasets for your research...</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            Finding relevant datasets related to "{researchIdea}"
+          </p>
         </div>
       )}
     </div>

@@ -10,10 +10,10 @@ import CostEstimator from '../components/CostEstimator'
 import DatasetRecommendations from '../components/DatasetRecommendations'
 import VenueRecommendations from '../components/VenueRecommendations'
 import MethodologyRecommendations from '../components/MethodologyRecommendations'
-import TopicTrends from '../components/TopicTrends'
 import { useForge } from '../hooks/useForge'
 import { useFirestore } from '../hooks/useFirestore'
 import { useAuth } from '../hooks/useAuth'
+import APIUsageDisplay from '../components/APIUsageDisplay'
 
 export default function Dashboard() {
   const { currentForge, startForge, setIdea, shouldSearchPapers, clearPaperSearchTrigger, updateSynthesizedFindings } = useForge()
@@ -22,18 +22,21 @@ export default function Dashboard() {
   const [imageFile, setImageFile] = React.useState<File | null>(null)
   const [error, setError] = React.useState('')
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
-  const [activeModule, setActiveModule] = React.useState<'forge' | 'arxiv' | 'patents' | 'datasets' | 'venues' | 'methodologies' | 'trends' | 'hub'>('forge')
+  const [activeModule, setActiveModule] = React.useState<'forge' | 'arxiv' | 'patents' | 'datasets' | 'venues' | 'methodologies' | 'hub'>('forge')
 
-  // Auto-switch to ArXiv module when forge completes
+  // Auto-switch to datasets module when forge completes
   React.useEffect(() => {
     if (shouldSearchPapers && currentForge.idea) {
-      console.log('Forge completed, switching to ArXiv module for paper search')
-      setActiveModule('arxiv')
+      console.log('Forge completed, switching to datasets module to show relevant datasets')
+      setActiveModule('datasets')
       clearPaperSearchTrigger()
       
       // Show notification to user
       setTimeout(() => {
-        alert(`📚 Forge completed! Automatically switched to Intel Library to find research papers related to "${currentForge.idea}"`)
+        const shortPhrase = currentForge.idea.length > 50 
+          ? currentForge.idea.substring(0, 30) + '...'
+          : currentForge.idea
+        alert(` Forge completed! Automatically switched to Datasets for "${shortPhrase}"`)
       }, 1000)
     }
   }, [shouldSearchPapers, currentForge.idea, clearPaperSearchTrigger])
@@ -294,22 +297,17 @@ Based on the analysis of the selected research papers, the following key finding
             >
               🔬 Methods
             </button>
-            <button
-              onClick={() => setActiveModule('trends')}
-              className={`px-4 py-2 rounded-md font-medium transition ${
-                activeModule === 'trends' 
-                  ? 'bg-emerald-500 text-white' 
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600'
-              }`}
-            >
-              📈 Trends
-            </button>
           </div>
         </div>
 
         {/* Module Content */}
         {activeModule === 'forge' && (
           <>
+            {/* API Usage Display */}
+            <div className="mb-6">
+              <APIUsageDisplay />
+            </div>
+
             {/* New Forge Section */}
             <section className="mb-6">
               <h2 className="text-xl sm:text-2xl font-bold mb-3 text-slate-900 dark:text-white">
@@ -395,16 +393,6 @@ Based on the analysis of the selected research papers, the following key finding
         {activeModule === 'methodologies' && (
           <section className="flex-1">
             <MethodologyRecommendations 
-              researchIdea={currentForge?.idea || ''}
-              forgeResult={currentForge?.result}
-              selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}
-            />
-          </section>
-        )}
-
-        {activeModule === 'trends' && (
-          <section className="flex-1">
-            <TopicTrends 
               researchIdea={currentForge?.idea || ''}
               forgeResult={currentForge?.result}
               selectedPapers={history.find(h => h.id === currentForge.id)?.pinnedPapers || []}

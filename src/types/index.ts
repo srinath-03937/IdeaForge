@@ -13,6 +13,20 @@ export interface Repo{
   license?: string | null
 }
 
+export interface Dataset {
+  id: string
+  name: string
+  description: string
+  source: 'huggingface' | 'kaggle' | 'uci' | 'government' | 'domain-specific' | 'pubmed' | 'nasa' | 'noaa' | 'worldbank' | 'imdb' | 'papers-with-code'
+  url: string
+  size: string
+  format: string
+  downloads: number
+  lastUpdated: string
+  tags: string[]
+  relevanceScore: number
+}
+
 export interface Patent{
   title: string
   abstract?: string
@@ -20,6 +34,7 @@ export interface Patent{
   inventors?: string[]
   filingDate?: string
   technologies?: string[]
+  similarity?: number
 }
 
 export interface AnalysisResult{

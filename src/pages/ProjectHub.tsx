@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Download, Tag, Filter, CheckSquare, Square, ArrowLeft, Trash2 } from 'lucide-react'
 import { useFirestore } from '../hooks/useFirestore'
 import { useForge } from '../hooks/useForge'
+import APIUsageDisplay from '../components/APIUsageDisplay'
 
 export default function ProjectHubPage() {
   const navigate = useNavigate()
@@ -105,6 +106,11 @@ export default function ProjectHubPage() {
             <h1 className="text-2xl font-bold">📦 Project Hub</h1>
           </div>
         </div>
+      </div>
+
+      {/* API Usage Display */}
+      <div className="mb-6">
+        <APIUsageDisplay />
       </div>
 
       {/* Main Content */}

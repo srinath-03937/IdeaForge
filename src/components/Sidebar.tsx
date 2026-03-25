@@ -1,9 +1,11 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Trash2, ExternalLink } from 'lucide-react'
 import { useFirestore } from '../hooks/useFirestore'
 import { useForge } from '../hooks/useForge'
 
 export default function Sidebar(){
+  const navigate = useNavigate()
   const { history, deleteForge } = useFirestore()
   const { currentForge, loadForgeFromHistory } = useForge()
   
@@ -18,6 +20,10 @@ export default function Sidebar(){
     }
   }
 
+  const handleOpenProjectHub = () => {
+    navigate('/project-hub')
+  }
+
   return (
     <aside className="p-4 h-full overflow-y-auto">
       <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-emerald-300">
@@ -26,13 +32,13 @@ export default function Sidebar(){
       
       {/* Project Hub Link */}
       <div className="mb-4">
-        <a
-          href="/project-hub"
+        <button
+          onClick={handleOpenProjectHub}
           className="flex items-center gap-2 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition"
         >
           <ExternalLink size={16} />
           Open Project Hub
-        </a>
+        </button>
       </div>
       
       <div className="flex flex-col gap-2">

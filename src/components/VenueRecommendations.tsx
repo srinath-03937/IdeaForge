@@ -68,7 +68,7 @@ export default function VenueRecommendations({ researchIdea, forgeResult, select
   }
 
   const getRelevantVenues = async (idea: string): Promise<Venue[]> => {
-    const keywords = idea.toLowerCase().split(' ')
+    const keywords = idea.toLowerCase().split(' ').filter(word => word.length > 3)
     
     const allVenues: Venue[] = [
       // Computer Science Conferences
@@ -415,7 +415,39 @@ export default function VenueRecommendations({ researchIdea, forgeResult, select
       }
     ]
     
-    return allVenues.slice(0, 6)
+    // Calculate relevance for each venue and sort
+    return allVenues
+      .map(venue => {
+        const venueText = `${venue.name} ${venue.description} ${venue.field} ${venue.subfield}`.toLowerCase()
+        let score = 0
+        
+        keywords.forEach(keyword => {
+          if (venueText.includes(keyword)) {
+            score += 0.3
+          }
+        })
+        
+        // Bonus for field/subfield matches
+        keywords.forEach(keyword => {
+          if (venue.field.toLowerCase().includes(keyword)) {
+            score += 0.2
+          }
+          if (venue.subfield.toLowerCase().includes(keyword)) {
+            score += 0.2
+          }
+        })
+        
+        // Higher score for top-tier venues
+        if (venue.ranking === 'A*') score += 0.1
+        if (venue.ranking === 'A') score += 0.05
+        
+        return {
+          ...venue,
+          relevanceScore: Math.min(score, 1.0)
+        }
+      })
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 6)
   }
 
   const getRankingColor = (ranking: string) => {

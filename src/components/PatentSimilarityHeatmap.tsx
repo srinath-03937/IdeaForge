@@ -64,7 +64,7 @@ export default function PatentSimilarityHeatmap({ similarityScore, patents, idea
       console.log('Patent analysis completed:', patentAnalysis)
       
       // Generate overall analysis
-      const overallAnalysis = generateOverallAnalysis(idea, patentAnalysis)
+      const overallAnalysis = generateOverallAnalysis(idea, patentAnalysis, similarityScore)
       
       setAnalysis({
         similarityScore: similarityScore,
@@ -205,10 +205,13 @@ export default function PatentSimilarityHeatmap({ similarityScore, patents, idea
   }
 
   // Generate overall analysis
-  const generateOverallAnalysis = (idea: string, patentAnalysis: any[]) => {
+  const generateOverallAnalysis = (idea: string, patentAnalysis: any[], initialSimilarityScore: number) => {
     const avgSimilarity = patentAnalysis.reduce((sum, p) => sum + p.similarity, 0) / patentAnalysis.length
     const highRiskPatents = patentAnalysis.filter(p => p.similarity > 70)
     const lowRiskPatents = patentAnalysis.filter(p => p.similarity < 30)
+    
+    // Use the initial similarity score instead of recalculated average
+    const finalSimilarityScore = initialSimilarityScore
     
     const recommendations: string[] = []
     
@@ -225,7 +228,7 @@ export default function PatentSimilarityHeatmap({ similarityScore, patents, idea
     }
     
     return {
-      summary: `Analysis of ${patentAnalysis.length} patents reveals ${avgSimilarity.toFixed(1)}% average similarity. ${highRiskPatents.length} high-risk patents detected (${(highRiskPatents.length / patentAnalysis.length * 100).toFixed(1)}%).`,
+      summary: `Analysis of ${patentAnalysis.length} patents reveals ${finalSimilarityScore.toFixed(1)}% overall similarity. ${highRiskPatents.length} high-risk patents detected (${(highRiskPatents.length / patentAnalysis.length * 100).toFixed(1)}%).`,
       recommendations
     }
   }

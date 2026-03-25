@@ -1,7 +1,50 @@
 import { searchPatents } from './patentService'
 import { Patent } from '../types'
+import { apiUsageTracker } from './apiUsageService'
 
 type GeminiResponse = any
+
+// Calculate feasibility based on patent analysis
+function calculateFeasibilityFromPatents(patents: Patent[]): number {
+  if (patents.length === 0) return 75 // Default feasibility
+  
+  // High similarity patents reduce feasibility
+  const highSimilarityPatents = patents.filter(p => p.similarity && p.similarity > 70)
+  const mediumSimilarityPatents = patents.filter(p => p.similarity && p.similarity > 40 && p.similarity <= 70)
+  
+  let feasibilityScore = 75 // Base score
+  
+  // Reduce score based on conflicting patents
+  feasibilityScore -= (highSimilarityPatents.length * 15)
+  feasibilityScore -= (mediumSimilarityPatents.length * 5)
+  
+  // Bonus for low similarity patents
+  const lowSimilarityPatents = patents.filter(p => p.similarity && p.similarity < 30)
+  feasibilityScore += (lowSimilarityPatents.length * 10)
+  
+  return Math.max(20, Math.min(95, feasibilityScore))
+}
+
+// Calculate novelty based on patent analysis
+function calculateNoveltyFromPatents(patents: Patent[]): number {
+  if (patents.length === 0) return 70 // Default novelty
+  
+  // High similarity patents reduce novelty
+  const highSimilarityPatents = patents.filter(p => p.similarity && p.similarity > 70)
+  const mediumSimilarityPatents = patents.filter(p => p.similarity && p.similarity > 40 && p.similarity <= 70)
+  
+  let noveltyScore = 70 // Base score
+  
+  // Reduce score based on conflicting patents
+  noveltyScore -= (highSimilarityPatents.length * 20)
+  noveltyScore -= (mediumSimilarityPatents.length * 10)
+  
+  // Bonus for low similarity patents (more room for innovation)
+  const lowSimilarityPatents = patents.filter(p => p.similarity && p.similarity < 30)
+  noveltyScore += (lowSimilarityPatents.length * 15)
+  
+  return Math.max(20, Math.min(95, noveltyScore))
+}
 
 // Generate dynamic mermaid flowchart based on actual search results and workflow
 function generateDynamicDiagram(prompt: string, contextRepos: any[], patents: Patent[]): string {
@@ -134,6 +177,10 @@ Respond with ONLY a valid JSON object (no markdown code blocks) with these exact
     }
     
     console.log('Calling Gemini API with patent context...', { url, hasKey: !!apiKey, keyLength: apiKey?.length })
+    
+    // Track API usage
+    apiUsageTracker.trackGeminiUsage()
+    
     const res = await backoffFetch(url, opts)
     const json = await res.json()
     console.log('Gemini response received:', { status: res.status, hasCandidates: !!json.candidates, candidateCount: json.candidates?.length || 0 })
@@ -198,8 +245,8 @@ Respond with ONLY a valid JSON object (no markdown code blocks) with these exact
         const result = {
           refinedConcept: parsed.refinedConcept || 'Refined idea concept',
           engineeringReportMarkdown: parsed.engineeringReportMarkdown || '## Engineering Report\nNo report available',
-          feasibility: Math.min(100, Math.max(0, parsed.feasibility || 65)),
-          novelty: Math.min(100, Math.max(0, parsed.novelty || 60)),
+          feasibility: parsed.feasibility || calculateFeasibilityFromPatents(patentsArray),
+          novelty: parsed.novelty || calculateNoveltyFromPatents(patentsArray),
           patents: patentsArray,
           validatedRepos: validatedReposArray,
           roadmap: parsed.roadmap || ['Research', 'Prototype', 'Deploy'],
