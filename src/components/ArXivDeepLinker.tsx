@@ -63,6 +63,21 @@ export default function ArXivDeepLinker({ onPinToProject, onSynthesizeFindings, 
     try {
       // Use Crossref API with user-specified parameters
       const papers = await searchCrossref(searchQuery, maxPapers, usePagination)
+      // Use CORS proxy service for production compatibility
+      let response: Response
+      let text: string = ''
+      
+      // Try multiple approaches in order of preference
+      const approaches = [
+        // 1. Vite proxy (works in development)
+        `/api/arxiv/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 2. Direct API call (may work in some environments)
+        `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 3. CORS proxy service (works in production)
+        `https://cors-anywhere.herokuapp.com/https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`,
+        // 4. Alternative CORS proxy
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10&sortBy=relevance&sort_order=descending`)}`
+      ]
       
       setPapers(papers)
       console.log(`Successfully loaded ${papers.length} papers from Crossref`)
